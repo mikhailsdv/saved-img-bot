@@ -1,0 +1,15 @@
+{
+  "name": "saved-img-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Misha",
+  "license": "ISC",
+  "dependencies": {
+    "medoo": "^1.0.0",
+    "telegraf": "^3.38.0"
+  }
+}
