@@ -7,5 +7,6 @@ module.exports = {
 		let d = new Date()
 		return `${zeroFirst(d.getDate())}.${zeroFirst(d.getMonth() + 1)}.${d.getFullYear()} ${zeroFirst(d.getHours())}.${zeroFirst(d.getMinutes())}.${zeroFirst(d.getSeconds())}`
 	},
-	randInt: () => Math.round(Math.random() * 1000000)
+	randInt: () => Math.round(Math.random() * 1000000),
+	removeSubstr: (str, from, length) => `${str.substr(0, from)}${str.substr(from + length)}`,
 }

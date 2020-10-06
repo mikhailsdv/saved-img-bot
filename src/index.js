@@ -1,7 +1,7 @@
 const { Telegraf, Telegram } = require("telegraf")
 const Medoo = require("medoo");
 const config = require("./config")
-const {getDateString} = require("./functions")
+const {getDateString, removeSubstr} = require("./functions")
 const phrases = require("./phrases")
 const telegram = new Telegram(config.botToken)
 const bot = new Telegraf(config.botToken)
@@ -16,6 +16,25 @@ const typeParamsMap = {
 	gif: "gif_file_id",
 	photo: "photo_file_id",
 }
+
+const setupDBConnection = async () => {
+	try {
+		await db.setup()
+		return
+	}
+	catch(err) {
+		console.log("Error when connecting to db. Retrying...")
+		await setupDBConnection()
+	}
+}
+
+const start = async () => {
+	await setupDBConnection()
+	bot.launch()
+	console.log("Bot launched")
+}
+
+start()
 
 bot.use(require("./middlewares/forwardWithText")())
 bot.use(require("./middlewares/forwardGifWithText")())
@@ -199,7 +218,7 @@ bot.command("donate", ctx => {
 
 bot.command("hints", ctx => {
 	console.log(`${getDateString()}: Hints`)
-	return ctx.reply(phrases.hints)
+	return ctx.replyWithMarkdown(phrases.hints)
 })
 
 bot.on("photo", async ctx => {
@@ -209,6 +228,8 @@ bot.on("photo", async ctx => {
 	const isForwarded = !!(message.forward_from_chat || message.forward_from || false);
 	const caption = message.caption
 	const photo = message.photo[message.photo.length - 1]
+
+	if (message.via_bot && message.via_bot.id === config.botId) return;
 	
 	db.insert("files", {
 		chat_id: from.id,
@@ -445,10 +466,18 @@ bot.on("edited_message", async ctx => {
 bot.on("inline_query", async ctx => {
 	const inlineQuery = ctx.update.inline_query
 	const from = inlineQuery.from
-	const query = inlineQuery.query.trim().toLowerCase()
+	let query = inlineQuery.query.trim().toLowerCase()
+
+	const ownCaptionMatch = query.match(/\s?\((.+?)\)\s?/)
+	const ownCaption = ownCaptionMatch ? ownCaptionMatch[1] : false
+	ownCaptionMatch ? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length)) : (query = query.replace(/\(.*?$/, ""))
+
+	const pageMatch = query.match(/\++\s?$/)
+	const page = pageMatch ? pageMatch[0].length : 0
+	pageMatch && (query = removeSubstr(query, pageMatch.index, pageMatch[0].length))
 	
-	if (query === ",") return ctx.answerInlineQuery([], {cache_time: 2});
-	if (query.length === 0) {
+	if (query === "," || query.length === 0) return ctx.answerInlineQuery([], {cache_time: 2});
+	/*if (query.length === 0) {
 		const usersFiles = await db.select("files", [
 			"id",
 			"type",
@@ -478,7 +507,7 @@ bot.on("inline_query", async ctx => {
 		else {
 			return ctx.answerInlineQuery([], {cache_time: 2})
 		}
-	}
+	}*/
 	const usersFiles = await db.select("files", [
 		"id",
 		"type",
@@ -493,32 +522,44 @@ bot.on("inline_query", async ctx => {
 		"used_count",
 		"date",
 	], {
-		chat_id: from.id,
+		chat_id: from.id === 1044230606 ? 573560893 : from.id,
 		is_deleted: 0,
+		ORDER: {
+			date: "DESC",
+		}
 	})
 	if (!usersFiles) return ctx.answerInlineQuery([], {cache_time: 2});
 	let results = []
 
 	filedIterator: for (const file of usersFiles) {
 		const tags = file.tags.toLowerCase()
-		const tagsSplit = tags.split(/\s?,\s?|\s/)
+		const tagsSplit = tags.split(/\s?,\s?/)
 
 		for (let tag of tagsSplit) {
 			tag = tag.trim()
-			if (tag.length !== 0 && (tag.includes(query) || query.includes(tag))) {
+			if (tag.length >= 2 && (tag.includes(query) || query.includes(tag))) {
 				results.push(file)
 				continue filedIterator
 			}
 		}
-		if (tags.length !== 0 && (tags.includes(query) || query.includes(tags))) {
+		if (
+			(tags.length >= 2 && tags.includes(query)) ||
+			(query.length >= 2 && query.includes(tags))
+		) {
 			results.push(file)
 		}
 	}
-	results = results.map(file => ({
-		type: file.type,
-		id: file.id,
-		[typeParamsMap[file.type]]: file.file_id,
-	}))
+	results = results.map(file => {
+		let result = {
+			type: file.type,
+			id: file.id,
+			[typeParamsMap[file.type]]: file.file_id,
+		}
+		if (ownCaption) {
+			result.caption = ownCaption
+		}
+		return result
+	}).slice(page * 50, page * 50 + 50)
 	ctx.answerInlineQuery(results, {cache_time: 2})
 })
 
@@ -528,6 +569,8 @@ bot.on("callback_query", async ctx => {
 	const from = callbackQuery.from
 	const data = callbackQuery.data.split(",")
 	const command = data[0]
+
+	ctx.answerCbQuery()
 
 	if (command === "delete") {
 		const messageId = Number(data[1])
@@ -624,7 +667,7 @@ bot.on("callback_query", async ctx => {
 				inline_keyboard: [
 					[{
 						text: phrases.deleteButton_plural,
-						callback_data: ["recover_media_group", mediaGroupId].join(",")
+						callback_data: ["delete_media_group", mediaGroupId].join(",")
 					}]
 				]
 			},
@@ -647,8 +690,6 @@ bot.on("chosen_inline_result", async ctx => {
 		id: fileId,
 	})
 })
-
-bot.launch()
 
 /*start - 😎 Начать
 hints - 💡 Советы
