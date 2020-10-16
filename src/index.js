@@ -466,18 +466,21 @@ bot.on("edited_message", async ctx => {
 bot.on("inline_query", async ctx => {
 	const inlineQuery = ctx.update.inline_query
 	const from = inlineQuery.from
-	let query = inlineQuery.query.trim().toLowerCase()
+	let query = inlineQuery.query.trim()
+	const page = inlineQuery.offset ? Number(inlineQuery.offset) : 0
 
-	const ownCaptionMatch = query.match(/\s?\((.+?)\)\s?/)
+	const ownCaptionMatch = query.match(/\s?["«](.+?)["»]\s?/)
 	const ownCaption = ownCaptionMatch ? ownCaptionMatch[1] : false
-	ownCaptionMatch ? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length)) : (query = query.replace(/\(.*?$/, ""))
-
-	const pageMatch = query.match(/\++\s?$/)
-	const page = pageMatch ? pageMatch[0].length : 0
-	pageMatch && (query = removeSubstr(query, pageMatch.index, pageMatch[0].length))
+	ownCaptionMatch ? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length)) : (query = query.replace(/["«].*?$/, ""))
 	
-	if (query === "," || query.length === 0) return ctx.answerInlineQuery([], {cache_time: 2});
-	/*if (query.length === 0) {
+	query = query.toLowerCase()
+	
+	if (query === ",") return ctx.answerInlineQuery([], {
+		cache_time: 2,
+		switch_pm_text: "Введите больше символов",
+		switch_pm_parameter: "start",
+	});
+	if (query.length === 0) {
 		const usersFiles = await db.select("files", [
 			"id",
 			"type",
@@ -494,20 +497,29 @@ bot.on("inline_query", async ctx => {
 		], {
 			chat_id: from.id,
 			is_deleted: 0,
-			LIMIT: 15,
+			ORDER: {
+				date: "DESC",
+			}
 		})
 		if (usersFiles) {
 			const results = usersFiles.map(file => ({
 				type: file.type,
 				id: file.id,
 				[typeParamsMap[file.type]]: file.file_id,
-			}))
-			return ctx.answerInlineQuery(results, {cache_time: 2})
+			})).slice(page * 50, page * 50 + 50)
+			return ctx.answerInlineQuery(results, {
+				cache_time: 2,
+				next_offset: page + 1,
+			})
 		}
 		else {
-			return ctx.answerInlineQuery([], {cache_time: 2})
+			return ctx.answerInlineQuery([], {
+				cache_time: 2,
+				switch_pm_text: "У вас нет ни одной сохраненной картини",
+				switch_pm_parameter: "start",
+			})
 		}
-	}*/
+	}
 	const usersFiles = await db.select("files", [
 		"id",
 		"type",
@@ -528,7 +540,11 @@ bot.on("inline_query", async ctx => {
 			date: "DESC",
 		}
 	})
-	if (!usersFiles) return ctx.answerInlineQuery([], {cache_time: 2});
+	if (!usersFiles) return ctx.answerInlineQuery([], {
+		cache_time: 2,
+		switch_pm_text: "У вас нет ни одной сохраненной картини",
+		switch_pm_parameter: "start",
+	});
 	let results = []
 
 	filedIterator: for (const file of usersFiles) {
@@ -560,7 +576,15 @@ bot.on("inline_query", async ctx => {
 		}
 		return result
 	}).slice(page * 50, page * 50 + 50)
-	ctx.answerInlineQuery(results, {cache_time: 2})
+	let body = {
+		cache_time: 2,
+		next_offset: page + 1,
+	}
+	if (results.length === 0) {
+		body.switch_pm_text = "Ничего не найдено"
+		body.switch_pm_parameter = "start"
+	}
+	ctx.answerInlineQuery(results, body)
 })
 
 bot.on("callback_query", async ctx => {
