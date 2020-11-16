@@ -1,6 +1,6 @@
 const { Telegraf, Telegram } = require("telegraf")
 const config = require("./config")
-const {getDateString, removeSubstr} = require("./functions")
+const {getDateString, removeSubstr, getTranslitVariants} = require("./functions")
 const phrases = require("./phrases")
 const DB = require("./api")
 const telegram = new Telegram(config.botToken)
@@ -598,23 +598,26 @@ bot.on("inline_query", async ctx => {
 		})
 	}
 	let results = []
+	const queryVariants = getTranslitVariants(query)
 
 	filedIterator: for (const file of usersFiles) {
 		const tags = file.tags.toLowerCase()
 		const tagsSplit = tags.split(/\s?,\s?/)
 
-		for (let tag of tagsSplit) {
-			tag = tag.trim()
-			if (tag.length >= 2 && (tag.includes(query) || query.includes(tag))) {
-				results.push(file)
-				continue filedIterator
+		for (let queryVariant of queryVariants) {
+			for (let tag of tagsSplit) {
+				tag = tag.trim()
+				if (tag.length >= 2 && (tag.includes(queryVariant) || queryVariant.includes(tag))) {
+					results.push(file)
+					continue filedIterator
+				}
 			}
-		}
-		if (
-			(tags.length >= 2 && tags.includes(query)) ||
-			(query.length >= 2 && query.includes(tags))
-		) {
-			results.push(file)
+			if (
+				(tags.length >= 2 && tags.includes(queryVariant)) ||
+				(queryVariant.length >= 2 && queryVariant.includes(tags))
+			) {
+				results.push(file)
+			}
 		}
 	}
 	results_ = results

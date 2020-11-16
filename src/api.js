@@ -23,11 +23,11 @@ const insert = ({table, columns}) => {
 					reject(error)
 				}
 				else {
-					log.green(getDateString(), "Insert:", {
+					/*log.green(getDateString(), "Insert:", {
 						table: table,
 						columns: columns,
 						results: results,
-					})
+					})*/
 					if (results.affectedRows > 0) {
 						resolve(true)
 					}
@@ -56,11 +56,11 @@ const has = ({table, where}) => {
 					reject(error)
 				}
 				else {
-					log.green(getDateString(), "Has:", {
+					/*log.green(getDateString(), "Has:", {
 						table: table,
 						where: where,
 						results: results,
-					})
+					})*/
 					resolve(results.length > 0)
 				}
 			}
@@ -95,13 +95,13 @@ const select = ({table, columns, where, order}) => {
 					reject(error)
 				}
 				else {
-					log.green(getDateString(), "Select:", {
+					/*log.green(getDateString(), "Select:", {
 						table: table,
 						columns: columns,
 						where: where,
 						order: order,
 						results: results,
-					})
+					})*/
 					resolve(results)
 				}
 			}
@@ -125,12 +125,12 @@ const update = ({table, columns, where}) => {
 					reject(error)
 				}
 				else {
-					log.green(getDateString(), "Update:", {
+					/*log.green(getDateString(), "Update:", {
 						table: table,
 						columns: columns,
 						where: where,
 						results: results,
-					})
+					})*/
 					if (results.affectedRows > 0) {
 						resolve(true)
 					}
