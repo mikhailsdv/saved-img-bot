@@ -9,7 +9,8 @@
   "author": "Misha",
   "license": "ISC",
   "dependencies": {
-    "medoo": "^1.0.0",
+    "mysql2": "^2.2.5",
+    "node-color-log": "^5.2.0",
     "telegraf": "^3.38.0"
   }
 }

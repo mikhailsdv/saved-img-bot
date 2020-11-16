@@ -3,3 +3,5 @@
 # dependencies
 /node_modules
 /src/config.js
+/src/test.js
+/src/test.cmd

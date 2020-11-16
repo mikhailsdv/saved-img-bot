@@ -1,40 +1,15 @@
 const { Telegraf, Telegram } = require("telegraf")
-const Medoo = require("medoo");
 const config = require("./config")
 const {getDateString, removeSubstr} = require("./functions")
 const phrases = require("./phrases")
+const DB = require("./api")
 const telegram = new Telegram(config.botToken)
 const bot = new Telegraf(config.botToken)
-let db = new Medoo({
-	host: "localhost",
-	user: "root",
-	database: "saved_img_bot"
-});
-db.setup();
 
 const typeParamsMap = {
 	gif: "gif_file_id",
 	photo: "photo_file_id",
 }
-
-const setupDBConnection = async () => {
-	try {
-		await db.setup()
-		return
-	}
-	catch(err) {
-		console.log("Error when connecting to db. Retrying...")
-		await setupDBConnection()
-	}
-}
-
-const start = async () => {
-	await setupDBConnection()
-	bot.launch()
-	console.log("Bot launched")
-}
-
-start()
 
 bot.use(require("./middlewares/forwardWithText")())
 bot.use(require("./middlewares/forwardGifWithText")())
@@ -53,17 +28,20 @@ bot.on("forward_with_text", ctx => {
 	if (media_group_id) {
 		photos.forEach(message => {
 			const photo = message.photo[message.photo.length - 1]
-			db.insert("files", {
-				chat_id: from.id,
-				type: "photo",
-				file_size: photo.file_size,
-				file_id: photo.file_id,
-				file_unique_id: photo.file_unique_id,
-				height: photo.height,
-				width: photo.width,
-				tags: text,
-				message_id: message.message_id,
-				media_group_id: media_group_id
+			DB.insert({
+				table: "files",
+				columns: {
+					chat_id: from.id,
+					type: "photo",
+					file_size: photo.file_size,
+					file_id: photo.file_id,
+					file_unique_id: photo.file_unique_id,
+					height: photo.height,
+					width: photo.width,
+					tags: text,
+					message_id: message.message_id,
+					media_group_id: media_group_id
+				}
 			})
 		})
 
@@ -83,17 +61,20 @@ bot.on("forward_with_text", ctx => {
 	}
 	else {
 		const photo = photos[0].photo[photos[0].photo.length - 1]
-		db.insert("files", {
-			chat_id: from.id,
-			type: "photo",
-			file_size: photo.file_size,
-			file_id: photo.file_id,
-			file_unique_id: photo.file_unique_id,
-			height: photo.height,
-			width: photo.width,
-			tags: text,
-			message_id: replyMessageId,
-			media_group_id: ""
+		DB.insert({
+			table: "files",
+			columns: {
+				chat_id: from.id,
+				type: "photo",
+				file_size: photo.file_size,
+				file_id: photo.file_id,
+				file_unique_id: photo.file_unique_id,
+				height: photo.height,
+				width: photo.width,
+				tags: text,
+				message_id: replyMessageId,
+				media_group_id: ""
+			}
 		})
 
 		return ctx.replyWithMarkdown(
@@ -119,17 +100,20 @@ bot.on("forward_gif_with_text", ctx => {
 	const replyMessageId = gifMessage.message_id
 	const gif = gifMessage.animation
 
-	db.insert("files", {
-		chat_id: from.id,
-		type: "gif",
-		file_size: gif.file_size,
-		file_id: gif.file_id,
-		file_unique_id: gif.file_unique_id,
-		height: gif.height,
-		width: gif.width,
-		tags: text,
-		message_id: replyMessageId,
-		media_group_id: ""
+	DB.insert({
+		table: "files",
+		columns: {
+			chat_id: from.id,
+			type: "gif",
+			file_size: gif.file_size,
+			file_id: gif.file_id,
+			file_unique_id: gif.file_unique_id,
+			height: gif.height,
+			width: gif.width,
+			tags: text,
+			message_id: replyMessageId,
+			media_group_id: ""
+		}
 	})
 
 	return ctx.replyWithMarkdown(
@@ -160,17 +144,20 @@ bot.on("media_group", ctx => {
 	.filter(message => message.photo)
 	.forEach(message => {
 		const photo = message.photo[message.photo.length - 1]
-		db.insert("files", {
-			chat_id: from.id,
-			type: "photo",
-			file_size: photo.file_size,
-			file_id: photo.file_id,
-			file_unique_id: photo.file_unique_id,
-			height: photo.height,
-			width: photo.width,
-			tags: caption ? caption : "",
-			message_id: message.message_id,
-			media_group_id: mediaGroupId
+		DB.insert({
+			table: "files",
+			columns: {
+				chat_id: from.id,
+				type: "photo",
+				file_size: photo.file_size,
+				file_id: photo.file_id,
+				file_unique_id: photo.file_unique_id,
+				height: photo.height,
+				width: photo.width,
+				tags: caption ? caption : "",
+				message_id: message.message_id,
+				media_group_id: mediaGroupId
+			}
 		})
 	})
 
@@ -198,15 +185,21 @@ bot.start(async ctx => {
 	console.log(`${getDateString()}: Start`)
 	ctx.replyWithMarkdown(phrases.start)
 	const from = ctx.from
-	const isUserExist = await db.has("users", {
-		chat_id: from.id,
-	});
-	if (!isUserExist) {
-		db.insert("users", {
+	const isUserExist = await DB.has({
+		table: "users",
+		where: {
 			chat_id: from.id,
-			username: from.username ? from.username : "",
-			first_name: from.first_name,
-			language_code: from.language_code,
+		}
+	})
+	if (!isUserExist) {
+		DB.insert({
+			table: "users",
+			columns: {
+				chat_id: from.id,
+				username: from.username ? from.username : "",
+				first_name: from.first_name,
+				language_code: from.language_code,
+			}
 		})
 	}
 })
@@ -231,17 +224,20 @@ bot.on("photo", async ctx => {
 
 	if (message.via_bot && message.via_bot.id === config.botId) return;
 	
-	db.insert("files", {
-		chat_id: from.id,
-		type: "photo",
-		file_size: photo.file_size,
-		file_id: photo.file_id,
-		file_unique_id: photo.file_unique_id,
-		height: photo.height,
-		width: photo.width,
-		tags: caption ? caption : "",
-		message_id: message.message_id,
-		media_group_id: ""
+	DB.insert({
+		table: "files",
+		columns: {
+			chat_id: from.id,
+			type: "photo",
+			file_size: photo.file_size,
+			file_id: photo.file_id,
+			file_unique_id: photo.file_unique_id,
+			height: photo.height,
+			width: photo.width,
+			tags: caption ? caption : "",
+			message_id: message.message_id,
+			media_group_id: ""
+		}
 	})
 
 	const text = (() => {
@@ -273,10 +269,13 @@ bot.on("text", async ctx => {
 		if (message.reply_to_message.from.id === config.botId) {
 			return ctx.reply(phrases.error_messageWithoutContext)
 		}
-		const isFileExist = await db.has("files", {
-			chat_id: from.id,
-			message_id: replyToMessageId,
-		});
+		const isFileExist = await DB.has({
+			table: "files",
+			where: {
+				chat_id: from.id,
+				message_id: replyToMessageId,
+			}
+		})
 		if (!isFileExist) {
 			return ctx.reply(phrases.editError_fileNotFound)
 		}
@@ -286,9 +285,13 @@ bot.on("text", async ctx => {
 
 		console.log(`${getDateString()}: Tag update`)
 
-		const file = await db.select("files", ["type", "is_deleted", "media_group_id"], {
-			chat_id: from.id,
-			message_id: replyToMessageId,
+		const file = await DB.select({
+			table: "files",
+			columns: ["type", "is_deleted", "media_group_id"],
+			where: {
+				chat_id: from.id,
+				message_id: replyToMessageId,
+			}
 		})
 		const isFileDeleted = file[0].is_deleted === 1
 		const isGif = file[0].type === "gif"
@@ -296,19 +299,27 @@ bot.on("text", async ctx => {
 		const isMediaGroup = mediaGroupId !== ""
 		const isSinglePhoto = (!isMediaGroup && !isGif)
 		if (isMediaGroup) {
-			await db.update("files", {
-				tags: message.text
-			}, {
-				chat_id: from.id,
-				media_group_id: mediaGroupId,
+			await DB.update({
+				table: "files",
+				columns: {
+					tags: message.text
+				},
+				where: {
+					chat_id: from.id,
+					media_group_id: mediaGroupId,
+				}
 			})
 		}
 		else {
-			await db.update("files", {
-				tags: message.text
-			}, {
-				chat_id: from.id,
-				message_id: replyToMessageId,
+			await DB.update({
+				table: "files",
+				columns: {
+					tags: message.text
+				},
+				where: {
+					chat_id: from.id,
+					message_id: replyToMessageId,
+				}
 			})
 		}
 
@@ -357,17 +368,20 @@ bot.on("gif", async ctx => {
 	const caption = message.caption
 	const animation = message.animation
 	
-	db.insert("files", {
-		chat_id: from.id,
-		type: "gif",
-		file_size: animation.file_size,
-		file_id: animation.file_id,
-		file_unique_id: animation.file_unique_id,
-		height: animation.height,
-		width: animation.width,
-		tags: caption ? caption : "",
-		message_id: message.message_id,
-		media_group_id: ""
+	DB.insert({
+		table: "files",
+		columns: {
+			chat_id: from.id,
+			type: "gif",
+			file_size: animation.file_size,
+			file_id: animation.file_id,
+			file_unique_id: animation.file_unique_id,
+			height: animation.height,
+			width: animation.width,
+			tags: caption ? caption : "",
+			message_id: message.message_id,
+			media_group_id: ""
+		}
 	})
 
 	const text = (() => {
@@ -395,9 +409,12 @@ bot.on("edited_message", async ctx => {
 	const fileMessageId = message.reply_to_message ? message.reply_to_message.message_id : message.message_id;
 	const from = message.from
 	const newTags = message.caption || message.text || false
-	const isFileExist = await db.has("files", {
-		chat_id: from.id,
-		message_id: fileMessageId,
+	const isFileExist = await DB.has({
+		table: "files",
+		where: {
+			chat_id: from.id,
+			message_id: fileMessageId,
+		}
 	});
 
 	if (!isFileExist) {
@@ -407,9 +424,13 @@ bot.on("edited_message", async ctx => {
 		return ctx.reply(phrases.editError_tagsNotSpecified)
 	}
 	
-	const file = await db.select("files", ["type", "is_deleted", "media_group_id"], {
-		chat_id: from.id,
-		message_id: fileMessageId,
+	const file = await DB.select({
+		table: "files",
+		columns: ["type", "is_deleted", "media_group_id"],
+		where: {
+			chat_id: from.id,
+			message_id: fileMessageId,
+		}
 	})
 	const isFileDeleted = file[0].is_deleted === 1
 	const isGif = file[0].type === "gif"
@@ -417,19 +438,27 @@ bot.on("edited_message", async ctx => {
 	const isMediaGroup = mediaGroupId !== ""
 	const isSinglePhoto = (!isMediaGroup && !isGif)
 	if (isMediaGroup) {
-		await db.update("files", {
-			tags: newTags
-		}, {
-			chat_id: from.id,
-			media_group_id: mediaGroupId,
+		await DB.update({
+			table: "files",
+			columns: {
+				tags: newTags
+			},
+			where: {
+				chat_id: from.id,
+				media_group_id: mediaGroupId,
+			}
 		})
 	}
 	else {
-		await db.update("files", {
-			tags: newTags
-		}, {
-			chat_id: from.id,
-			message_id: fileMessageId,
+		await DB.update({
+			table: "files",
+			columns: {
+				tags: newTags
+			},
+			where: {
+				chat_id: from.id,
+				message_id: fileMessageId,
+			}
 		})
 	}
 
@@ -465,6 +494,7 @@ bot.on("edited_message", async ctx => {
 
 bot.on("inline_query", async ctx => {
 	const inlineQuery = ctx.update.inline_query
+	console.log("inlineQuery", inlineQuery)
 	const from = inlineQuery.from
 	let query = inlineQuery.query.trim()
 	const page = inlineQuery.offset ? Number(inlineQuery.offset) : 0
@@ -472,8 +502,8 @@ bot.on("inline_query", async ctx => {
 	const ownCaptionMatch = query.match(/\s?["«](.+?)["»]\s?/)
 	const ownCaption = ownCaptionMatch ? ownCaptionMatch[1] : false
 	ownCaptionMatch ? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length)) : (query = query.replace(/["«].*?$/, ""))
-	
-	query = query.toLowerCase()
+
+	query = query.toLowerCase().trim()
 	
 	if (query === ",") return ctx.answerInlineQuery([], {
 		cache_time: 2,
@@ -481,7 +511,62 @@ bot.on("inline_query", async ctx => {
 		switch_pm_parameter: "start",
 	});
 	if (query.length === 0) {
-		const usersFiles = await db.select("files", [
+		const usersFiles = await DB.select({
+			table: "files",
+			columns: [
+				"id",
+				"type",
+				"chat_id",
+				"file_id",
+				"file_size",
+				"file_unique_id",
+				"height",
+				"width",
+				"tags",
+				"message_id",
+				"used_count",
+				"date",
+			],
+			where: {
+				chat_id: from.id,
+				is_deleted: 0,
+			},
+			order: {
+				date: "DESC",
+			}
+		})
+		if (usersFiles) {
+			const results = usersFiles
+			.slice(page * 50, page * 50 + 50)
+			.map(file => {
+				let result = {
+					type: file.type,
+					id: file.id,
+					[typeParamsMap[file.type]]: file.file_id,
+				}
+				if (ownCaption) {
+					result.caption = ownCaption
+				}
+				return result
+			})
+			return ctx.answerInlineQuery(results, {
+				cache_time: 2,
+				next_offset: usersFiles.slice((page + 1) * 50, (page + 1) * 50 + 50).length > 0 ? page + 1 : "",
+			})
+		}
+		else {
+			return ctx.answerInlineQuery([], {
+				cache_time: 2,
+				switch_pm_text: "У вас нет ни одной сохраненной картини",
+				switch_pm_parameter: "start",
+				next_offset: "",
+				is_personal: true,
+			})
+		}
+	}
+	const usersFiles = await DB.select({
+		table: "files",
+		columns: [
 			"id",
 			"type",
 			"chat_id",
@@ -494,57 +579,24 @@ bot.on("inline_query", async ctx => {
 			"message_id",
 			"used_count",
 			"date",
-		], {
+		],
+		where: {
 			chat_id: from.id,
 			is_deleted: 0,
-			ORDER: {
-				date: "DESC",
-			}
-		})
-		if (usersFiles) {
-			const results = usersFiles.map(file => ({
-				type: file.type,
-				id: file.id,
-				[typeParamsMap[file.type]]: file.file_id,
-			})).slice(page * 50, page * 50 + 50)
-			return ctx.answerInlineQuery(results, {
-				cache_time: 2,
-				next_offset: page + 1,
-			})
-		}
-		else {
-			return ctx.answerInlineQuery([], {
-				cache_time: 2,
-				switch_pm_text: "У вас нет ни одной сохраненной картини",
-				switch_pm_parameter: "start",
-			})
-		}
-	}
-	const usersFiles = await db.select("files", [
-		"id",
-		"type",
-		"chat_id",
-		"file_id",
-		"file_size",
-		"file_unique_id",
-		"height",
-		"width",
-		"tags",
-		"message_id",
-		"used_count",
-		"date",
-	], {
-		chat_id: from.id === 1044230606 ? 573560893 : from.id,
-		is_deleted: 0,
-		ORDER: {
+		},
+		order: {
 			date: "DESC",
 		}
 	})
-	if (!usersFiles) return ctx.answerInlineQuery([], {
-		cache_time: 2,
-		switch_pm_text: "У вас нет ни одной сохраненной картини",
-		switch_pm_parameter: "start",
-	});
+	if (!usersFiles) {
+		return ctx.answerInlineQuery([], {
+			cache_time: 2,
+			switch_pm_text: "У вас нет ни одной сохраненной картини",
+			switch_pm_parameter: "start",
+			next_offset: "",
+			is_personal: true,
+		})
+	}
 	let results = []
 
 	filedIterator: for (const file of usersFiles) {
@@ -565,7 +617,9 @@ bot.on("inline_query", async ctx => {
 			results.push(file)
 		}
 	}
-	results = results.map(file => {
+	results_ = results
+	.slice(page * 50, page * 50 + 50)
+	.map(file => {
 		let result = {
 			type: file.type,
 			id: file.id,
@@ -575,16 +629,17 @@ bot.on("inline_query", async ctx => {
 			result.caption = ownCaption
 		}
 		return result
-	}).slice(page * 50, page * 50 + 50)
+	})
 	let body = {
 		cache_time: 2,
-		next_offset: page + 1,
+		next_offset: results.slice((page + 1) * 50, (page + 1) * 50 + 50).length > 0 ? page + 1 : "",
+		is_personal: true,
 	}
-	if (results.length === 0) {
+	if (results_.length === 0 && page === 0) {
 		body.switch_pm_text = "Ничего не найдено"
 		body.switch_pm_parameter = "start"
 	}
-	ctx.answerInlineQuery(results, body)
+	ctx.answerInlineQuery(results_, body)
 })
 
 bot.on("callback_query", async ctx => {
@@ -598,16 +653,23 @@ bot.on("callback_query", async ctx => {
 
 	if (command === "delete") {
 		const messageId = Number(data[1])
-		const isGif = await db.has("files", {
-			chat_id: from.id,
-			message_id: messageId,
-			type: "gif",
-		});
-		db.update("files", {
-			is_deleted: 1
-		}, {
-			chat_id: from.id,
-			message_id: messageId
+		const isGif = await DB.has({
+			table: "files",
+			where: {
+				chat_id: from.id,
+				message_id: messageId,
+				type: "gif",
+			}
+		})
+		DB.update({
+			table: "files",
+			columns: {
+				is_deleted: 1
+			},
+			where: {
+				chat_id: from.id,
+				message_id: messageId
+			}
 		})
 		return telegram.editMessageText(
 			from.id,
@@ -629,16 +691,23 @@ bot.on("callback_query", async ctx => {
 	}
 	else if (command === "recover") {
 		const messageId = Number(data[1])
-		const isGif = await db.has("files", {
-			chat_id: from.id,
-			message_id: messageId,
-			type: "gif",
-		});
-		db.update("files", {
-			is_deleted: 0
-		}, {
-			chat_id: from.id,
-			message_id: messageId
+		const isGif = await DB.has({
+			table: "files",
+			where: {
+				chat_id: from.id,
+				message_id: messageId,
+				type: "gif",
+			}
+		})
+		DB.update({
+			table: "files",
+			columns: {
+				is_deleted: 0
+			},
+			where: {
+				chat_id: from.id,
+				message_id: messageId
+			}
 		})
 		return telegram.editMessageText(
 			from.id,
@@ -660,11 +729,15 @@ bot.on("callback_query", async ctx => {
 	}
 	else if (command === "delete_media_group") {
 		const mediaGroupId = Number(data[1])
-		db.update("files", {
-			is_deleted: 1
-		}, {
-			chat_id: from.id,
-			media_group_id: mediaGroupId
+		DB.update({
+			table: "files",
+			columns: {
+				is_deleted: 1
+			},
+			where: {
+				chat_id: from.id,
+				media_group_id: mediaGroupId
+			}
 		})
 		return telegram.editMessageText(from.id, callbackQuery.message.message_id, null, phrases.deleted_plural, {
 			reply_markup: {
@@ -680,11 +753,15 @@ bot.on("callback_query", async ctx => {
 	}
 	else if (command === "recover_media_group") {
 		const mediaGroupId = Number(data[1])
-		db.update("files", {
-			is_deleted: 0
-		}, {
-			chat_id: from.id,
-			media_group_id: mediaGroupId
+		DB.update({
+			table: "files",
+			columns: {
+				is_deleted: 0
+			},
+			where: {
+				chat_id: from.id,
+				media_group_id: mediaGroupId
+			}
 		})
 		return telegram.editMessageText(from.id, callbackQuery.message.message_id, null, phrases.recovered_plural, {
 			reply_markup: {
@@ -703,17 +780,28 @@ bot.on("callback_query", async ctx => {
 bot.on("chosen_inline_result", async ctx => {
 	console.log(`${getDateString()}: Chosen inline result`)
 	const fileId = Number(ctx.update.chosen_inline_result.result_id)
-	const file = await db.select("files", ["used_count"], {
-		chat_id: ctx.from.id,
-		id: fileId,
+	const from = ctx.from
+	const file = await DB.select({
+		table: "files",
+		columns: ["used_count"],
+		where: {
+			chat_id: from.id,
+			id: fileId,
+		}
 	})
-	db.update("files", {
-		used_count: file[0]["used_count"] + 1
-	}, {
-		chat_id: ctx.from.id,
-		id: fileId,
+	DB.update({
+		table: "files",
+		columns: {
+			used_count: file[0]["used_count"] + 1
+		},
+		where: {
+			chat_id: from.id,
+			id: fileId,
+		}
 	})
 })
+
+bot.launch()
 
 /*start - 😎 Начать
 hints - 💡 Советы
