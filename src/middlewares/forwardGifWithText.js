@@ -17,7 +17,7 @@ module.exports = (timeout = 400) => Composer.mount(["document", "text"], (ctx, n
 	}
 
 	let userMap = map.get(fromId)
-	if (message.animation && userMap.gifMessage === null) {
+	if ((message.animation || (message.document && message.document.mime_type === "image/gif")) && userMap.gifMessage === null) {
 		userMap.gifMessage = message
 	}
 	else if (message.text && userMap.gifMessage !== null) {

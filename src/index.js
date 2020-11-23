@@ -98,7 +98,7 @@ bot.on("forward_gif_with_text", ctx => {
 	const from = ctx.from
 	const {text, gifMessage} = ctx.forwardGifWithText
 	const replyMessageId = gifMessage.message_id
-	const gif = gifMessage.animation
+	const gif = gifMessage.animation || gifMessage.document
 
 	DB.insert({
 		table: "files",
@@ -108,8 +108,8 @@ bot.on("forward_gif_with_text", ctx => {
 			file_size: gif.file_size,
 			file_id: gif.file_id,
 			file_unique_id: gif.file_unique_id,
-			height: gif.height,
-			width: gif.width,
+			height: gif.height || 0,
+			width: gif.width || 0,
 			tags: text,
 			message_id: replyMessageId,
 			media_group_id: ""
@@ -198,7 +198,7 @@ bot.start(async ctx => {
 				chat_id: from.id,
 				username: from.username ? from.username : "",
 				first_name: from.first_name,
-				language_code: from.language_code,
+				language_code: from.language_code ? from.language_code : "",
 			}
 		})
 	}
@@ -361,12 +361,13 @@ bot.on("text", async ctx => {
 })
 
 bot.on("gif", async ctx => {
+	console.log("c")
 	console.log(`${getDateString()}: New saved gif`)
 	const message = ctx.update.message
 	const from = message.from
 	const isForwarded = !!(message.forward_from_chat || message.forward_from || false);
 	const caption = message.caption
-	const animation = message.animation
+	const animation = message.animation || message.document
 	
 	DB.insert({
 		table: "files",
@@ -376,8 +377,8 @@ bot.on("gif", async ctx => {
 			file_size: animation.file_size,
 			file_id: animation.file_id,
 			file_unique_id: animation.file_unique_id,
-			height: animation.height,
-			width: animation.width,
+			height: animation.height || 0,
+			width: animation.width || 0,
 			tags: caption ? caption : "",
 			message_id: message.message_id,
 			media_group_id: ""
