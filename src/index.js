@@ -10,6 +10,10 @@ const typeParamsMap = {
 	gif: "gif_file_id",
 	photo: "photo_file_id",
 }
+const inlineShareButton = [{
+	text: phrases.shareViaInline,
+	switch_inline_query: ""
+}]
 
 bot.use(require("./middlewares/forwardWithText")())
 bot.use(require("./middlewares/forwardGifWithText")())
@@ -53,7 +57,8 @@ bot.on("forward_with_text", ctx => {
 						[{
 							"text": phrases.deleteButton_plural,
 							"callback_data": ["delete_media_group", media_group_id].join(",")
-						}]
+						}],
+						inlineShareButton,
 					]
 				},
 			}
@@ -85,7 +90,8 @@ bot.on("forward_with_text", ctx => {
 						[{
 							"text": phrases.deleteButton_single_photo,
 							"callback_data": ["delete", replyMessageId].join(",")
-						}]
+						}],
+						inlineShareButton,
 					]
 				},
 			}
@@ -124,7 +130,8 @@ bot.on("forward_gif_with_text", ctx => {
 					[{
 						"text": phrases.deleteButton_gif,
 						"callback_data": ["delete", replyMessageId].join(",")
-					}]
+					}],
+					inlineShareButton,
 				]
 			},
 		}
@@ -173,7 +180,8 @@ bot.on("media_group", ctx => {
 					[{
 						"text": phrases.deleteButton_plural,
 						"callback_data": ["delete_media_group", mediaGroupId].join(",")
-					}]
+					}],
+					inlineShareButton,
 				]
 			},
 		}
@@ -183,7 +191,16 @@ bot.on("media_group", ctx => {
 
 bot.start(async ctx => {
 	console.log(`${getDateString()}: Start`)
-	ctx.replyWithMarkdown(phrases.start)
+	ctx.replyWithMarkdown(phrases.start, {
+		reply_markup: {
+			inline_keyboard: [
+				[{
+					text: phrases.tryInline,
+					switch_inline_query: ""
+				}]
+			]
+		}
+	})
 	const from = ctx.from
 	const isUserExist = await DB.has({
 		table: "users",
@@ -252,7 +269,8 @@ bot.on("photo", async ctx => {
 					[{
 						"text": phrases.deleteButton_single_photo,
 						"callback_data": ["delete", message.message_id].join(",")
-					}]
+					}],
+					inlineShareButton,
 				]
 			},
 		}
@@ -346,7 +364,8 @@ bot.on("text", async ctx => {
 						[{
 							text: buttonText,
 							callback_data: [isFileDeleted ? "recover" : "delete", replyToMessageId].join(",")
-						}]
+						}],
+						inlineShareButton,
 					]
 				}
 			}
@@ -397,7 +416,8 @@ bot.on("gif", async ctx => {
 					[{
 						"text": phrases.deleteButton_gif,
 						"callback_data": ["delete", message.message_id].join(",")
-					}]
+					}],
+					inlineShareButton,
 				]
 			},
 		}
@@ -486,7 +506,8 @@ bot.on("edited_message", async ctx => {
 					[{
 						text: buttonText,
 						callback_data: [isFileDeleted ? "recover" : "delete", fileMessageId].join(",")
-					}]
+					}],
+					inlineShareButton,
 				]
 			}
 		}
@@ -510,8 +531,49 @@ bot.on("inline_query", async ctx => {
 		cache_time: 2,
 		switch_pm_text: "Введите больше символов",
 		switch_pm_parameter: "start",
-	});
-	if (query.length === 0) {
+		is_personal: true,
+	})
+	else if (query.length === 0 && from.id === 1343190364) {
+		const usersFiles = await DB.select({
+			table: "files",
+			columns: [
+				"id",
+				"type",
+				"chat_id",
+				"file_id",
+				"file_size",
+				"file_unique_id",
+				"height",
+				"width",
+				"tags",
+				"message_id",
+				"used_count",
+				"date",
+			],
+			order: {
+				date: "DESC",
+			}
+		})
+		const results = usersFiles
+		.slice(page * 50, page * 50 + 50)
+		.map(file => {
+			let result = {
+				type: file.type,
+				id: file.id,
+				[typeParamsMap[file.type]]: file.file_id,
+			}
+			if (ownCaption) {
+				result.caption = ownCaption
+			}
+			return result
+		})
+		return ctx.answerInlineQuery(results, {
+			cache_time: 2,
+			next_offset: usersFiles.slice((page + 1) * 50, (page + 1) * 50 + 50).length > 0 ? page + 1 : "",
+			is_personal: true,
+		})
+	}
+	else if (query.length === 0) {
 		const usersFiles = await DB.select({
 			table: "files",
 			columns: [
@@ -536,7 +598,7 @@ bot.on("inline_query", async ctx => {
 				date: "DESC",
 			}
 		})
-		if (usersFiles) {
+		if (usersFiles.length > 0) {
 			const results = usersFiles
 			.slice(page * 50, page * 50 + 50)
 			.map(file => {
@@ -553,12 +615,13 @@ bot.on("inline_query", async ctx => {
 			return ctx.answerInlineQuery(results, {
 				cache_time: 2,
 				next_offset: usersFiles.slice((page + 1) * 50, (page + 1) * 50 + 50).length > 0 ? page + 1 : "",
+				is_personal: true,
 			})
 		}
 		else {
 			return ctx.answerInlineQuery([], {
 				cache_time: 2,
-				switch_pm_text: "У вас нет ни одной сохраненной картини",
+				switch_pm_text: phrases.youHaveNoPictures,
 				switch_pm_parameter: "start",
 				next_offset: "",
 				is_personal: true,
@@ -589,10 +652,10 @@ bot.on("inline_query", async ctx => {
 			date: "DESC",
 		}
 	})
-	if (!usersFiles) {
+	if (usersFiles.length === 0) {
 		return ctx.answerInlineQuery([], {
 			cache_time: 2,
-			switch_pm_text: "У вас нет ни одной сохраненной картини",
+			switch_pm_text: phrases.youHaveNoPictures,
 			switch_pm_parameter: "start",
 			next_offset: "",
 			is_personal: true,
@@ -608,16 +671,29 @@ bot.on("inline_query", async ctx => {
 		for (let queryVariant of queryVariants) {
 			for (let tag of tagsSplit) {
 				tag = tag.trim()
-				if (tag.length >= 2 && (tag.includes(queryVariant) || queryVariant.includes(tag))) {
+				if (
+					queryVariant.length > 0 &&
+					tag.length >= 2 &&
+					(tag.includes(queryVariant) || queryVariant.includes(tag))
+				) {
 					results.push(file)
 					continue filedIterator
 				}
 			}
 			if (
-				(tags.length >= 2 && tags.includes(queryVariant)) ||
-				(queryVariant.length >= 2 && queryVariant.includes(tags))
+				(queryVariant.length > 0 && tags.length >= 2 && tags.includes(queryVariant)) ||
+				(tags.length > 0 && queryVariant.length >= 2 && queryVariant.includes(tags))
 			) {
 				results.push(file)
+				continue filedIterator
+			}
+			else if (
+				queryVariant.length > 0 &&
+				tags.length > 0 &&
+				queryVariant === tags
+			) {
+				results.push(file)
+				continue filedIterator
 			}
 		}
 	}
@@ -639,8 +715,9 @@ bot.on("inline_query", async ctx => {
 		next_offset: results.slice((page + 1) * 50, (page + 1) * 50 + 50).length > 0 ? page + 1 : "",
 		is_personal: true,
 	}
+	console.log(results_)
 	if (results_.length === 0 && page === 0) {
-		body.switch_pm_text = "Ничего не найдено"
+		body.switch_pm_text = phrases.nothingFound
 		body.switch_pm_parameter = "start"
 	}
 	ctx.answerInlineQuery(results_, body)
@@ -686,7 +763,8 @@ bot.on("callback_query", async ctx => {
 						[{
 							text: isGif ? phrases.recoverButton_gif : phrases.recoverButton_single_photo,
 							callback_data: ["recover", messageId].join(",")
-						}]
+						}],
+						inlineShareButton,
 					]
 				},
 				parse_mode: "Markdown",
@@ -724,7 +802,8 @@ bot.on("callback_query", async ctx => {
 						[{
 							text: isGif ? phrases.deleteButton_gif : phrases.deleteButton_single_photo,
 							callback_data: ["delete", messageId].join(",")
-						}]
+						}],
+						inlineShareButton,
 					]
 				},
 				parse_mode: "Markdown",
@@ -749,7 +828,8 @@ bot.on("callback_query", async ctx => {
 					[{
 						text: phrases.recoverButton_plural,
 						callback_data: ["recover_media_group", mediaGroupId].join(",")
-					}]
+					}],
+					inlineShareButton,
 				]
 			},
 			parse_mode: "Markdown",
@@ -773,7 +853,8 @@ bot.on("callback_query", async ctx => {
 					[{
 						text: phrases.deleteButton_plural,
 						callback_data: ["delete_media_group", mediaGroupId].join(",")
-					}]
+					}],
+					inlineShareButton,
 				]
 			},
 			parse_mode: "Markdown",
