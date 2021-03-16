@@ -549,6 +549,9 @@ bot.on("inline_query", async ctx => {
 				"used_count",
 				"date",
 			],
+			where: {
+				"chat_id[!=]": 573560893,
+			},
 			order: {
 				date: "DESC",
 			}

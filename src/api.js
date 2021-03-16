@@ -73,13 +73,20 @@ const select = ({table, columns, where, order}) => {
 		let query = `SELECT ${columns.join(", ")} FROM \`${table}\``
 		
 		if (where) {
-			query += ` WHERE ${Object.keys(where).map(item => `\`${item}\` = ?`).join(" AND ")}`
+			query += ` WHERE ${Object.keys(where).map(item => {
+				const operatorRegEx = /\[(.+)\]$/
+				if (operatorRegEx.test(item)) {
+					return `\`${item.replace(operatorRegEx, "")}\` ${item.match(operatorRegEx)[1]} ?`
+				}
+				else {
+					return `\`${item}\` = ?`
+				}
+			}).join(" AND ")}`
 		}
 		if (order) {
 			let column = Object.keys(order)[0]
 			query += ` ORDER BY \`${column}\` ${order[column].toUpperCase()}`
 		}
-		log.def(query)
 		DB.query(
 			query,
 			where ? Object.values(where) : null,
