@@ -676,7 +676,7 @@ bot.on("inline_query", async ctx => {
 					tag.length >= 2 &&
 					(tag.includes(queryVariant) || queryVariant.includes(tag))
 				) {
-					results.push(file)
+					!results.includes(file) && results.push(file)
 					continue filedIterator
 				}
 			}
@@ -684,7 +684,7 @@ bot.on("inline_query", async ctx => {
 				(queryVariant.length > 0 && tags.length >= 2 && tags.includes(queryVariant)) ||
 				(tags.length > 0 && queryVariant.length >= 2 && queryVariant.includes(tags))
 			) {
-				results.push(file)
+				!results.includes(file) && results.push(file)
 				continue filedIterator
 			}
 			else if (
@@ -692,7 +692,7 @@ bot.on("inline_query", async ctx => {
 				tags.length > 0 &&
 				queryVariant === tags
 			) {
-				results.push(file)
+				!results.includes(file) && results.push(file)
 				continue filedIterator
 			}
 		}
