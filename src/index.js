@@ -380,7 +380,6 @@ bot.on("text", async ctx => {
 })
 
 bot.on("gif", async ctx => {
-	console.log("c")
 	console.log(`${getDateString()}: New saved gif`)
 	const message = ctx.update.message
 	const from = message.from
