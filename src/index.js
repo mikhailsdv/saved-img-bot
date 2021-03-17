@@ -1,6 +1,7 @@
 const { Telegraf, Telegram } = require("telegraf")
 const config = require("./config")
-const {getDateString, removeSubstr, getTranslitVariants} = require("./functions")
+const log = require("./log")
+const {removeSubstr, getTranslitVariants} = require("./utils")
 const phrases = require("./phrases")
 const DB = require("./api")
 const telegram = new Telegram(config.botToken)
@@ -21,7 +22,7 @@ bot.use(require("./middlewares/mediaGroup")())
 bot.use(require("./middlewares/gif"))
 
 bot.catch((err, ctx) => {
-	console.log(`${getDateString()}: Ooops, encountered an error for ${ctx.updateType}`, err)
+	log.red(`Ooops, encountered an error for ${ctx.updateType}`, err)
 })
 
 bot.on("forward_with_text", ctx => {
@@ -100,7 +101,7 @@ bot.on("forward_with_text", ctx => {
 })
 
 bot.on("forward_gif_with_text", ctx => {
-	console.log(`${getDateString()}: New saved gif`)
+	log.green("NEW SAVED GIF")
 	const from = ctx.from
 	const {text, gifMessage} = ctx.forwardGifWithText
 	const replyMessageId = gifMessage.message_id
@@ -139,7 +140,7 @@ bot.on("forward_gif_with_text", ctx => {
 })
 
 bot.on("media_group", ctx => {
-	console.log(`${getDateString()}: New saved album`)
+	log.green("NEW SAVED ALBUM")
 	const from = ctx.mediaGroup[0].from
 	const messageWidthCaption = ctx.mediaGroup.find(message => message.caption !== undefined)
 	const caption = messageWidthCaption ? messageWidthCaption.caption : ""
@@ -190,7 +191,7 @@ bot.on("media_group", ctx => {
 })
 
 bot.start(async ctx => {
-	console.log(`${getDateString()}: Start`)
+	log.green("COMMAND /start")
 	ctx.replyWithMarkdown(phrases.start, {
 		reply_markup: {
 			inline_keyboard: [
@@ -222,17 +223,17 @@ bot.start(async ctx => {
 })
 
 bot.command("donate", ctx => {
-	console.log(`${getDateString()}: Donate`)
+	log.green("COMMAND /donate")
 	return ctx.replyWithMarkdown(phrases.donate)
 })
 
 bot.command("hints", ctx => {
-	console.log(`${getDateString()}: Hints`)
+	log.green("COMMAND /hints")
 	return ctx.replyWithMarkdown(phrases.hints)
 })
 
 bot.on("photo", async ctx => {
-	console.log(`${getDateString()}: New saved photo`)
+	log.green("NEW SAVED PHOTO")
 	const message = ctx.update.message
 	const from = message.from
 	const isForwarded = !!(message.forward_from_chat || message.forward_from || false);
@@ -301,7 +302,7 @@ bot.on("text", async ctx => {
 			return ctx.reply(phrases.editError_tagsNotSpecified)
 		}
 
-		console.log(`${getDateString()}: Tag update`)
+		log.green("TAG UPDATE")
 
 		const file = await DB.select({
 			table: "files",
@@ -380,7 +381,7 @@ bot.on("text", async ctx => {
 })
 
 bot.on("gif", async ctx => {
-	console.log(`${getDateString()}: New saved gif`)
+	log.green("NEW SAVED GIF")
 	const message = ctx.update.message
 	const from = message.from
 	const isForwarded = !!(message.forward_from_chat || message.forward_from || false);
@@ -424,7 +425,7 @@ bot.on("gif", async ctx => {
 })
 
 bot.on("edited_message", async ctx => {
-	console.log(`${getDateString()}: Edited message`)
+	log.green("EDITED MESSAGE")
 	const message = ctx.update.edited_message
 	const fileMessageId = message.reply_to_message ? message.reply_to_message.message_id : message.message_id;
 	const from = message.from
@@ -515,7 +516,6 @@ bot.on("edited_message", async ctx => {
 
 bot.on("inline_query", async ctx => {
 	const inlineQuery = ctx.update.inline_query
-	console.log("inlineQuery", inlineQuery)
 	const from = inlineQuery.from
 	let query = inlineQuery.query.trim()
 	const page = inlineQuery.offset ? Number(inlineQuery.offset) : 0
@@ -525,6 +525,8 @@ bot.on("inline_query", async ctx => {
 	ownCaptionMatch ? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length)) : (query = query.replace(/["«].*?$/, ""))
 
 	query = query.toLowerCase().trim()
+
+	log.def("INLINE QUERY:", query)
 	
 	if (query === ",") return ctx.answerInlineQuery([], {
 		cache_time: 2,
@@ -717,7 +719,6 @@ bot.on("inline_query", async ctx => {
 		next_offset: results.slice((page + 1) * 50, (page + 1) * 50 + 50).length > 0 ? page + 1 : "",
 		is_personal: true,
 	}
-	console.log(results_)
 	if (results_.length === 0 && page === 0) {
 		body.switch_pm_text = phrases.nothingFound
 		body.switch_pm_parameter = "start"
@@ -726,7 +727,7 @@ bot.on("inline_query", async ctx => {
 })
 
 bot.on("callback_query", async ctx => {
-	console.log(`${getDateString()}: Button pressed`)
+	log.green("BUTTON PRESSED")
 	const callbackQuery = ctx.update.callback_query
 	const from = callbackQuery.from
 	const data = callbackQuery.data.split(",")
@@ -865,7 +866,7 @@ bot.on("callback_query", async ctx => {
 })
 
 bot.on("chosen_inline_result", async ctx => {
-	console.log(`${getDateString()}: Chosen inline result`)
+	log.green("CHOSEN INLINE RESULT")
 	const fileId = Number(ctx.update.chosen_inline_result.result_id)
 	const from = ctx.from
 	const file = await DB.select({

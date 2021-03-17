@@ -1,4 +1,4 @@
-const {trimMessage} = require("./functions")
+const {trimMessage} = require("./utils")
 const config = require("./config")
 
 module.exports = {

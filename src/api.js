@@ -1,5 +1,4 @@
 const mysql = require("mysql2")
-const {getDateString} = require("./functions")
 const log = require("./log")
 
 const DB = mysql.createPool({
@@ -15,7 +14,7 @@ const insert = ({table, columns}) => {
 			Object.values(columns),
 			(error, results, fields) => {
 				if (error) {
-					log.red(getDateString(), "Insert error:", {
+					log.red("Insert error:", {
 						table: table,
 						columns: columns,
 						error: error,
@@ -23,7 +22,7 @@ const insert = ({table, columns}) => {
 					reject(error)
 				}
 				else {
-					/*log.green(getDateString(), "Insert:", {
+					/*log.green("Insert:", {
 						table: table,
 						columns: columns,
 						results: results,
@@ -48,7 +47,7 @@ const has = ({table, where}) => {
 			Object.values(where),
 			(error, results, fields) => {
 				if (error) {
-					log.red(getDateString(), "Has error:", {
+					log.red("Has error:", {
 						table: table,
 						where: where,
 						error: error,
@@ -56,7 +55,7 @@ const has = ({table, where}) => {
 					reject(error)
 				}
 				else {
-					/*log.green(getDateString(), "Has:", {
+					/*log.green("Has:", {
 						table: table,
 						where: where,
 						results: results,
@@ -92,7 +91,7 @@ const select = ({table, columns, where, order}) => {
 			where ? Object.values(where) : null,
 			(error, results, fields) => {
 				if (error) {
-					log.red(getDateString(), "Select error:", {
+					log.red("Select error:", {
 						table: table,
 						columns: columns,
 						where: where,
@@ -102,7 +101,7 @@ const select = ({table, columns, where, order}) => {
 					reject(error)
 				}
 				else {
-					/*log.green(getDateString(), "Select:", {
+					/*log.green("Select:", {
 						table: table,
 						columns: columns,
 						where: where,
@@ -123,7 +122,7 @@ const update = ({table, columns, where}) => {
 			Object.values(columns).concat(Object.values(where)),
 			(error, results, fields) => {
 				if (error) {
-					log.red(getDateString(), "Update eror:", {
+					log.red("Update eror:", {
 						table: table,
 						columns: columns,
 						where: where,
@@ -132,7 +131,7 @@ const update = ({table, columns, where}) => {
 					reject(error)
 				}
 				else {
-					/*log.green(getDateString(), "Update:", {
+					/*log.green("Update:", {
 						table: table,
 						columns: columns,
 						where: where,
