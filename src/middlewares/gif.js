@@ -5,5 +5,5 @@ module.exports = Composer.mount(["document"], (ctx, next) => {
 	if (message.animation || (message.document && message.document.mime_type === "image/gif")) {
 		ctx.updateSubTypes.push("gif")
 	}
-	return next()
+	next()
 })
