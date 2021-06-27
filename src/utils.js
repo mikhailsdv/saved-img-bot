@@ -4,12 +4,16 @@ const zeroFirst = s => {
 	return `0${s}`.substr(-2)
 }
 
+const arrEnd = arr => arr.length === 0 ? null : arr[arr.length - 1]
+
 const getDateString = () => {
 	let d = new Date()
-	return `${zeroFirst(d.getDate())}.${zeroFirst(d.getMonth() + 1)}.${d.getFullYear()} ${zeroFirst(d.getHours())}.${zeroFirst(d.getMinutes())}.${zeroFirst(d.getSeconds())}`
+	return `${zeroFirst(d.getDate())}.${zeroFirst(d.getMonth() + 1)}.${d.getFullYear()} ${zeroFirst(d.getHours())}:${zeroFirst(d.getMinutes())}:${zeroFirst(d.getSeconds())}`
 }
 
 const removeSubstr = (str, from, length) => `${str.substr(0, from)}${str.substr(from + length)}`
+
+const log = (...args) => console.log(`${getDateString()}:`, ...args)
 
 const getTranslitVariants = str => {
 	const strSplit = str.split("")
@@ -50,9 +54,11 @@ const getTranslitVariants = str => {
 }
 
 module.exports = {
-	trimMessage: trimMessage,
-	zeroFirst: zeroFirst,
-	getDateString: getDateString,
-	removeSubstr: removeSubstr,
-	getTranslitVariants: getTranslitVariants,
+	trimMessage,
+	zeroFirst,
+	getDateString,
+	removeSubstr,
+	getTranslitVariants,
+	arrEnd,
+	log,
 }
