@@ -209,7 +209,7 @@ const getUserFiles = ({
 				\`tags\`,
 				\`file_message_id\`,
 				\`used_count\`,
-				\`is_deleted\`,
+				\`is_deleted\` = 0,
 				\`media_group_id\`
 			FROM \`${config.FILES_TABLE_NAME}\`
 			WHERE
@@ -244,7 +244,7 @@ const getUserFilesOfType = ({
 				\`tags\`,
 				\`file_message_id\`,
 				\`used_count\`,
-				\`is_deleted\`,
+				\`is_deleted\` = 0,
 				\`media_group_id\`
 			FROM \`${config.FILES_TABLE_NAME}\`
 			WHERE
