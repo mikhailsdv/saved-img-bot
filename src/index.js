@@ -570,9 +570,15 @@ bot.on("inline_query", async ctx => {
 		}
 	}
 	else {
-		const usersFiles = await getUserFiles({
-			chat_id: chatId,
-		})
+		const usersFiles = filterType ?
+			await getUserFilesOfType({
+				chat_id: chatId,
+				type: filterType,
+			})
+			:
+			await getUserFiles({
+				chat_id: chatId,
+			})
 		if (usersFiles.length === 0) {
 			return ctx.answerInlineQuery([], {
 				cache_time: 2,
