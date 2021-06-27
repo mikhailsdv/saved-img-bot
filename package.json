@@ -10,7 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "mysql2": "^2.2.5",
-    "node-color-log": "^5.2.0",
     "telegraf": "^3.38.0"
   }
 }
