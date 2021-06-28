@@ -209,11 +209,12 @@ const getUserFiles = ({
 				\`tags\`,
 				\`file_message_id\`,
 				\`used_count\`,
-				\`is_deleted\` = 0,
+				\`is_deleted\`,
 				\`media_group_id\`
 			FROM \`${config.FILES_TABLE_NAME}\`
 			WHERE
-				\`chat_id\` = ?
+				\`chat_id\` = ? AND
+				\`is_deleted\` = 0
 			ORDER BY \`date\` DESC
 		`,
 		[
@@ -244,12 +245,13 @@ const getUserFilesOfType = ({
 				\`tags\`,
 				\`file_message_id\`,
 				\`used_count\`,
-				\`is_deleted\` = 0,
+				\`is_deleted\`,
 				\`media_group_id\`
 			FROM \`${config.FILES_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
-				\`type\` = ?
+				\`type\` = ? AND
+				\`is_deleted\` = 0
 			ORDER BY \`date\` DESC
 		`,
 		[
