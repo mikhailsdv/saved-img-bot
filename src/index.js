@@ -370,7 +370,10 @@ bot.command("statistics", async ctx => {
 			await ctx[types[type].sendCtxMethod](file_id)
 			await sleep(300)
 			await ctx.replyWithMarkdown(
-				`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
+				phrases.most_used_file.replace(
+					"count",
+					`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
+				)
 			)
 		} else {
 			ctx[types[type].sendCtxMethod](file_id, {
