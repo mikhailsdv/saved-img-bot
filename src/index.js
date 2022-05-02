@@ -366,12 +366,20 @@ bot.command("statistics", async ctx => {
 		})
 		if (!mostUsedFile.length) return
 		const {type, file_id, used_count} = mostUsedFile[0]
-		ctx[types[type].sendCtxMethod](file_id, {
-			caption: phrases.most_used_file.replace(
-				"count",
+		if (type === "sticker") {
+			await ctx[types[type].sendCtxMethod](file_id)
+			await sleep(300)
+			await ctx.replyWithMarkdown(
 				`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
-			),
-		})
+			)
+		} else {
+			ctx[types[type].sendCtxMethod](file_id, {
+				caption: phrases.most_used_file.replace(
+					"count",
+					`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
+				),
+			})
+		}
 	} else {
 		ctx.replyWithMarkdown(phrases.statistics_unavailable)
 		await sleep(300)
