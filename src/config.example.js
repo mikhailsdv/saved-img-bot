@@ -1,6 +1,5 @@
-module.exports = ({
+module.exports = {
 	BOT_TOKEN: "1234567890:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-	BOT_ID: 1234567890, //first numbers of BOT_TOKEN
 
 	BOT_USERNAME: "YourBotUsername",
 
@@ -10,4 +9,4 @@ module.exports = ({
 
 	FILES_TABLE_NAME: "files",
 	USERS_TABLE_NAME: "users",
-});
+}
