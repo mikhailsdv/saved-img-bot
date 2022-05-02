@@ -1,6 +1,6 @@
 const {Telegraf, Telegram} = require("telegraf")
 const config = require("./config")
-config.BOT_ID = config.BOT_TOKEN.match(/^\d+/)[0]
+config.BOT_ID = Number(config.BOT_TOKEN.match(/^\d+/)[0])
 const phrases = require("./phrases")
 const {
 	saveFile,
