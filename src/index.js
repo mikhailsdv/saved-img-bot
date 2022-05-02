@@ -1,5 +1,6 @@
-const { Telegraf, Telegram } = require("telegraf")
+const {Telegraf, Telegram} = require("telegraf")
 const config = require("./config")
+config.BOT_ID = config.BOT_TOKEN.match(/^\d+/)[0]
 const phrases = require("./phrases")
 const {
 	saveFile,
@@ -14,34 +15,66 @@ const {
 	setFileDeletedState,
 	setMediaGroupDeletedState,
 	increaseUsedCount,
+	getStatistics,
+	getMostUsedFile,
+	isPremiumUser,
+	getUser,
+	revokePremium,
+	moveFiles,
+	setPremium,
+	deleteAllUsersFiles,
+	//getUserFilesForExport,
 } = require("./api")
 const {
 	removeSubstr,
+	sleep,
+	pluralize,
 	getTranslitVariants,
 	arrEnd,
+	createMoveHash,
+	isValidMoveHash,
 	log,
 } = require("./utils")
 const telegram = new Telegram(config.BOT_TOKEN)
 const bot = new Telegraf(config.BOT_TOKEN)
 
-const typeParamsMap = {
-	gif: "gif_file_id",
-	photo: "photo_file_id",
-	video: "video_file_id",
+const types = {
+	gif: {
+		inlineResultKey: "gif_file_id",
+		sendCtxMethod: "replyWithAnimation",
+		extractMediaItem: message => message.animation || message.document,
+	},
+	photo: {
+		inlineResultKey: "photo_file_id",
+		sendCtxMethod: "replyWithPhoto",
+		extractMediaItem: message => arrEnd(message.photo),
+	},
+	video: {
+		inlineResultKey: "video_file_id",
+		sendCtxMethod: "replyWithVideo",
+		extractMediaItem: message => message.video,
+	},
+	sticker: {
+		inlineResultKey: "sticker_file_id",
+		sendCtxMethod: "replyWithSticker",
+		extractMediaItem: message => message.sticker,
+	},
 }
-const inlineShareButton = [{
-	text: phrases.share_via_inline,
-	switch_inline_query: ""
-}]
+
+const inlineShareButton = [
+	{
+		text: phrases.share_via_inline,
+		switch_inline_query: "",
+	},
+]
 
 bot.use(require("./middlewares/forwardWithText")())
 bot.use(require("./middlewares/mediaGroup")())
 bot.use(require("./middlewares/gif"))
 
-
 bot.on("message", (ctx, next) => {
 	const message = ctx.message
-	if (message?.via_bot?.id !== config.BOT_ID) next();
+	if (message?.via_bot?.id !== config.BOT_ID) next()
 })
 
 bot.catch((err, ctx) => {
@@ -50,27 +83,89 @@ bot.catch((err, ctx) => {
 
 bot.start(async ctx => {
 	log("Command /start")
-	ctx.replyWithMarkdown(phrases.start, {
-		reply_markup: {
-			inline_keyboard: [
-				[{
-					text: phrases.try_inline,
-					switch_inline_query: ""
-				}]
-			]
-		}
-	})
 	const from = ctx.from
-	const userExist = await isUserExist({
-		chat_id: from.id,
-	})
-	if (!userExist) {
-		createUser({
-			chat_id: from.id,
-			username: from.username,
-			first_name: from.first_name,
-			language_code: from.language_code,
+	const message = ctx.message
+	const parameter = message.text.replace("/start ", "") || null
+
+	if (/^move_\d+_.{32}$/.test(parameter)) {
+		log("Start with move")
+		const toChatId = from.id
+		let [fromChatId, hash] = parameter.split("_").slice(1)
+		fromChatId = Number(fromChatId)
+		const isFromUserExist = await isUserExist({
+			chat_id: fromChatId,
 		})
+		if (isFromUserExist) {
+			const {date, id} = await getUser({
+				chat_id: fromChatId,
+			})
+			if (isValidMoveHash({date, id, hash})) {
+				if (fromChatId === toChatId) {
+					return ctx.replyWithMarkdown(phrases.move_same_account)
+				} else {
+					try {
+						log("Moving...")
+						await revokePremium({chat_id: fromChatId})
+						const moveStatus = await moveFiles({
+							from_chat_id: fromChatId,
+							to_chat_id: toChatId,
+						})
+						const isToUserExist = await isUserExist({
+							chat_id: toChatId,
+						})
+						if (isToUserExist) {
+							await setPremium({
+								chat_id: toChatId,
+							})
+						} else {
+							await createUser({
+								chat_id: from.id,
+								username: from.username,
+								first_name: from.first_name,
+								language_code: from.language_code,
+								is_premium: 1,
+							})
+						}
+						log("Move status:", moveStatus)
+
+						return ctx.replyWithMarkdown(
+							moveStatus ? phrases.move_success : phrases.move_failed
+						)
+					} catch (err) {
+						log("Move error:", err)
+						return ctx.replyWithMarkdown(phrases.move_failed)
+					}
+				}
+			} else {
+				return ctx.replyWithMarkdown(phrases.move_error)
+			}
+		} else {
+			return ctx.replyWithMarkdown(phrases.move_error)
+		}
+	} else {
+		ctx.replyWithMarkdown(phrases.start, {
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: phrases.try_inline,
+							switch_inline_query: "",
+						},
+					],
+				],
+			},
+		})
+		const isUserExist_ = await isUserExist({
+			chat_id: from.id,
+		})
+		if (!isUserExist_) {
+			await createUser({
+				chat_id: from.id,
+				username: from.username,
+				first_name: from.first_name,
+				language_code: from.language_code,
+			})
+		}
 	}
 })
 
@@ -79,9 +174,19 @@ bot.command("donate", ctx => {
 	return ctx.replyWithMarkdown(phrases.donate)
 })
 
+bot.command("premium", ctx => {
+	log("Command /premium")
+	return ctx.replyWithMarkdown(phrases.become_premium)
+})
+
 bot.command("hints", ctx => {
 	log("Command /hints")
 	return ctx.replyWithMarkdown(phrases.hints)
+})
+
+bot.command("commands", ctx => {
+	log("Command /commands")
+	return ctx.replyWithMarkdown(phrases.commands)
 })
 
 bot.on("forward_with_text", ctx => {
@@ -105,22 +210,21 @@ bot.on("forward_with_text", ctx => {
 			})
 		})
 
-		ctx.replyWithMarkdown(
-			phrases.saved_plural_own_caption, {
-				"reply_to_message_id": media[0].message_id,
-				"reply_markup": {
-					"inline_keyboard": [
-						[{
-							"text": phrases.button_delete_plural,
-							"callback_data": ["delete_media_group", media_group_id].join(",")
-						}],
-						inlineShareButton,
-					]
-				},
-			}
-		)
-	}
-	else {
+		ctx.replyWithMarkdown(phrases.saved_plural_own_caption, {
+			reply_to_message_id: media[0].message_id,
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: phrases.button_delete_plural,
+							callback_data: ["delete_media_group", media_group_id].join(","),
+						},
+					],
+					inlineShareButton,
+				],
+			},
+		})
+	} else {
 		const mediaItem = media[0]
 		saveFile({
 			chat_id: chatId,
@@ -135,27 +239,27 @@ bot.on("forward_with_text", ctx => {
 			tags_message_id: tags_message_id,
 		})
 
-		ctx.replyWithMarkdown(
-			phrases.saved_single_own_caption, {
-				"reply_to_message_id": mediaItem.message_id,
-				"reply_markup": {
-					"inline_keyboard": [
-						[{
-							"text": phrases.button_delete_single,
-							"callback_data": ["delete", mediaItem.message_id].join(",")
-						}],
-						inlineShareButton,
-					]
-				},
-			}
-		)
+		ctx.replyWithMarkdown(phrases.saved_single_own_caption, {
+			reply_to_message_id: mediaItem.message_id,
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: phrases.button_delete_single,
+							callback_data: ["delete", mediaItem.message_id].join(","),
+						},
+					],
+					inlineShareButton,
+				],
+			},
+		})
 	}
 })
 
 bot.on("media_group", ctx => {
 	const chatId = ctx.chat.id
 	const {text, media, media_group_id} = ctx.mediaGroup
-	
+
 	media.forEach(mediaItem => {
 		saveFile({
 			chat_id: chatId,
@@ -173,47 +277,46 @@ bot.on("media_group", ctx => {
 	})
 
 	ctx.replyWithMarkdown(
-		text ? phrases.saved_plural_own_caption : phrases.saved_plural_no_caption, {
-			"reply_to_message_id": media[0].message_id,
-			"reply_markup": {
-				"inline_keyboard": [
-					[{
-						"text": phrases.button_delete_plural,
-						"callback_data": ["delete_media_group", media_group_id].join(",")
-					}],
+		text ? phrases.saved_plural_own_caption : phrases.saved_plural_no_caption,
+		{
+			reply_to_message_id: media[0].message_id,
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: phrases.button_delete_plural,
+							callback_data: ["delete_media_group", media_group_id].join(","),
+						},
+					],
 					inlineShareButton,
-				]
+				],
 			},
 		}
 	)
 })
 
-bot.on(["photo", "video", "gif"], async ctx => {
-	const types = [
-		{
-			name: "photo",
-			extractMediaItem: message => arrEnd(message.photo),
-		},
-		{
-			name: "video",
-			extractMediaItem: message => message.video,
-		},
-		{
-			name: "gif",
-			extractMediaItem: message => message.animation || message.document,
-		},
-	]
+bot.on(Object.keys(types), async ctx => {
 	const message = ctx.message
 	const chatId = ctx.chat.id
 	const messageId = message.message_id
 	const caption = message.caption
-	const type = types.find(item => ctx.updateSubTypes.includes(item.name))
+	const typeKeys = Object.keys(types)
+	const mediaType = ctx.updateSubTypes.find(item => typeKeys.includes(item))
+
+	if (mediaType === "sticker") {
+		const isPremiumUser_ = await isPremiumUser({chat_id: chatId})
+		if (!isPremiumUser_) {
+			return ctx.replyWithMarkdown(phrases.become_premium)
+		}
+	}
+
+	const type = types[mediaType]
 	const mediaItem = type.extractMediaItem(message)
-	log(`New saved ${type.name}`)
-	
+	log(`New saved ${mediaType}`)
+
 	saveFile({
 		chat_id: chatId,
-		type: type.name,
+		type: mediaType,
 		file_size: mediaItem.file_size,
 		file_id: mediaItem.file_id,
 		file_unique_id: mediaItem.file_unique_id,
@@ -225,19 +328,112 @@ bot.on(["photo", "video", "gif"], async ctx => {
 	})
 
 	ctx.replyWithMarkdown(
-		caption ? phrases.saved_single_own_caption : phrases.saved_single_no_caption, {
-			"reply_to_message_id": messageId,
-			"reply_markup": {
-				"inline_keyboard": [
-					[{
-						"text": phrases.button_delete_single,
-						"callback_data": ["delete", messageId].join(",")
-					}],
+		caption ? phrases.saved_single_own_caption : phrases.saved_single_no_caption,
+		{
+			reply_to_message_id: messageId,
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: phrases.button_delete_single,
+							callback_data: ["delete", messageId].join(","),
+						},
+					],
 					inlineShareButton,
-				]
+				],
 			},
 		}
 	)
+})
+
+bot.command("statistics", async ctx => {
+	log("Command /statistics")
+	const chatId = ctx.chat.id
+
+	const isPremiumUser_ = await isPremiumUser({chat_id: chatId})
+	if (isPremiumUser_) {
+		const statistics = await getStatistics({
+			chat_id: chatId,
+		})
+		let message = phrases.statistics
+		for (const key in statistics) {
+			message = message.replace(key, statistics[key])
+		}
+		ctx.replyWithMarkdown(message)
+		await sleep(300)
+		const mostUsedFile = await getMostUsedFile({
+			chat_id: chatId,
+		})
+		if (!mostUsedFile.length) return
+		const {type, file_id, used_count} = mostUsedFile[0]
+		ctx[types[type].sendCtxMethod](file_id, {
+			caption: phrases.most_used_file.replace(
+				"count",
+				`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
+			),
+		})
+	} else {
+		ctx.replyWithMarkdown(phrases.statistics_unavailable)
+		await sleep(300)
+		ctx.replyWithMarkdown(phrases.become_premium)
+	}
+})
+
+bot.command("drop", async ctx => {
+	log("Command /drop")
+	return ctx.replyWithMarkdown(phrases.drop_confirm, {
+		reply_markup: {
+			inline_keyboard: [
+				[
+					{
+						text: phrases.drop_confirm_button,
+						callback_data: "drop",
+					},
+				],
+			],
+		},
+	})
+})
+
+/*
+bot.command("export", async ctx => {
+	log("Command /export")
+	const chatId = ctx.chat.id
+
+	const usersFiles = await getUserFilesForExport({chat_id: chatId})
+
+	for (const file of usersFiles.slice(0, 1)) {
+		const link = await telegram.getFileLink(file.file_id)
+		console.log(link)
+		await sleep(250)
+	}
+})*/
+
+bot.command("move", async ctx => {
+	log("Command /move")
+	const chatId = ctx.chat.id
+
+	const isPremiumUser_ = await isPremiumUser({chat_id: chatId})
+	if (isPremiumUser_) {
+		const {id, date} = await getUser({
+			chat_id: chatId,
+		})
+		const moveHash = createMoveHash({date, id})
+		ctx.replyWithMarkdown(phrases.move_instruction, {
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: phrases.move_here,
+							url: `https://t.me/${ctx.botInfo.username}?start=move_${chatId}_${moveHash}`,
+						},
+					],
+				],
+			},
+		})
+	} else {
+		ctx.replyWithMarkdown(phrases.become_premium)
+	}
 })
 
 bot.on("text", async ctx => {
@@ -245,7 +441,7 @@ bot.on("text", async ctx => {
 	const chatId = ctx.chat.id
 	const messageId = message.message_id
 	const isForwarded = Boolean(message.forward_from_chat || message.forward_from || false)
-	
+
 	if (message.reply_to_message) {
 		const replyToMessageId = message.reply_to_message.message_id
 		if (message.reply_to_message.from.id === config.BOT_ID) {
@@ -279,8 +475,7 @@ bot.on("text", async ctx => {
 				chat_id: chatId,
 				media_group_id: mediaGroupId,
 			})
-		}
-		else {
+		} else {
 			await updateFileTags({
 				tags: message.text,
 				chat_id: chatId,
@@ -289,32 +484,40 @@ bot.on("text", async ctx => {
 		}
 
 		return ctx.replyWithMarkdown(
-			isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single, {
-			reply_to_message_id: replyToMessageId,
-			reply_markup: {
-				inline_keyboard: [
-					[{
-						text: isFileDeleted ?
-							isMediaGroup ? phrases.button_recover_plural : phrases.button_recover_single
-							:
-							isMediaGroup ? phrases.button_delete_plural : phrases.button_delete_single,
-						callback_data: [
-							isFileDeleted ?
-								isMediaGroup ? "recover_media_group" : "recover"
-								:
-								isMediaGroup ? "delete_media_group" : "delete",
-							isMediaGroup ? file.media_group_id : replyToMessageId,
-						].join(",")
-					}],
-					inlineShareButton,
-				]
+			isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single,
+			{
+				reply_to_message_id: replyToMessageId,
+				reply_markup: {
+					inline_keyboard: [
+						[
+							{
+								text: isFileDeleted
+									? isMediaGroup
+										? phrases.button_recover_plural
+										: phrases.button_recover_single
+									: isMediaGroup
+									? phrases.button_delete_plural
+									: phrases.button_delete_single,
+								callback_data: [
+									isFileDeleted
+										? isMediaGroup
+											? "recover_media_group"
+											: "recover"
+										: isMediaGroup
+										? "delete_media_group"
+										: "delete",
+									isMediaGroup ? file.media_group_id : replyToMessageId,
+								].join(","),
+							},
+						],
+						inlineShareButton,
+					],
+				},
 			}
-		})
-	}
-	else if (isForwarded) {
+		)
+	} else if (isForwarded) {
 		return ctx.reply(phrases.error_no_file)
-	}
-	else {
+	} else {
 		return ctx.reply(phrases.error_message_without_context)
 	}
 })
@@ -324,13 +527,15 @@ bot.on("edited_message", async ctx => {
 	const message = ctx.update.edited_message
 	const chatId = ctx.chat.id
 	const messageId = message.message_id
-	const fileMessageId = message.reply_to_message ? message.reply_to_message.message_id : message.message_id
+	const fileMessageId = message.reply_to_message
+		? message.reply_to_message.message_id
+		: message.message_id
 	const newTags = message.caption || message.text || false
 
 	const fileExist = await isFileExist({
 		chat_id: chatId,
 		message_id: fileMessageId,
-	});
+	})
 
 	if (!fileExist) {
 		return ctx.reply(phrases.error_edit_file_not_found)
@@ -338,7 +543,7 @@ bot.on("edited_message", async ctx => {
 	if (!newTags) {
 		return ctx.reply(phrases.error_edit_tags_not_specified)
 	}
-	
+
 	const file = await getFile({
 		chat_id: chatId,
 		message_id: fileMessageId,
@@ -353,8 +558,7 @@ bot.on("edited_message", async ctx => {
 			chat_id: chatId,
 			media_group_id: mediaGroupId,
 		})
-	}
-	else {
+	} else {
 		await updateFileTags({
 			tags: newTags,
 			chat_id: chatId,
@@ -363,27 +567,37 @@ bot.on("edited_message", async ctx => {
 	}
 
 	return ctx.replyWithMarkdown(
-		isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single, {
-		reply_to_message_id: file.file_message_id,
-		reply_markup: {
-			inline_keyboard: [
-				[{
-					text: isFileDeleted ?
-						isMediaGroup ? phrases.button_recover_plural : phrases.button_recover_single
-						:
-						isMediaGroup ? phrases.button_delete_plural : phrases.button_delete_single,
-					callback_data: [
-						isFileDeleted ?
-							isMediaGroup ? "recover_media_group" : "recover"
-							:
-							isMediaGroup ? "delete_media_group" : "delete",
-						isMediaGroup ? file.media_group_id : file.file_message_id,
-					].join(",")
-				}],
-				inlineShareButton,
-			]
+		isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single,
+		{
+			reply_to_message_id: file.file_message_id,
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: isFileDeleted
+								? isMediaGroup
+									? phrases.button_recover_plural
+									: phrases.button_recover_single
+								: isMediaGroup
+								? phrases.button_delete_plural
+								: phrases.button_delete_single,
+							callback_data: [
+								isFileDeleted
+									? isMediaGroup
+										? "recover_media_group"
+										: "recover"
+									: isMediaGroup
+									? "delete_media_group"
+									: "delete",
+								isMediaGroup ? file.media_group_id : file.file_message_id,
+							].join(","),
+						},
+					],
+					inlineShareButton,
+				],
+			},
 		}
-	})
+	)
 })
 
 bot.on("callback_query", async ctx => {
@@ -403,102 +617,93 @@ bot.on("callback_query", async ctx => {
 			chat_id: chatId,
 			file_message_id: fileMessageId,
 		})
-		return telegram.editMessageText(
-			chatId,
-			messageId,
-			null,
-			phrases.deleted_single,
-			{
-				reply_markup: {
-					inline_keyboard: [
-						[{
+		return telegram.editMessageText(chatId, messageId, null, phrases.deleted_single, {
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
 							text: phrases.button_recover_single,
-							callback_data: ["recover", fileMessageId].join(",")
-						}],
-						inlineShareButton,
-					]
-				},
-				parse_mode: "Markdown",
-			}
-		)
-	}
-	else if (command === "recover") {
+							callback_data: ["recover", fileMessageId].join(","),
+						},
+					],
+					inlineShareButton,
+				],
+			},
+			parse_mode: "Markdown",
+		})
+	} else if (command === "recover") {
 		const fileMessageId = Number(data[1])
 		setFileDeletedState({
 			is_deleted: 0,
 			chat_id: chatId,
 			file_message_id: fileMessageId,
 		})
-		return telegram.editMessageText(
-			chatId,
-			messageId,
-			null,
-			phrases.recovered_single,
-			{
-				reply_markup: {
-					inline_keyboard: [
-						[{
+		return telegram.editMessageText(chatId, messageId, null, phrases.recovered_single, {
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
 							text: phrases.button_delete_single,
-							callback_data: ["delete", fileMessageId].join(",")
-						}],
-						inlineShareButton,
-					]
-				},
-				parse_mode: "Markdown",
-			}
-		)
-	}
-	else if (command === "delete_media_group") {
+							callback_data: ["delete", fileMessageId].join(","),
+						},
+					],
+					inlineShareButton,
+				],
+			},
+			parse_mode: "Markdown",
+		})
+	} else if (command === "delete_media_group") {
 		const mediaGroupId = data[1]
 		setMediaGroupDeletedState({
 			is_deleted: 1,
 			chat_id: chatId,
 			media_group_id: mediaGroupId,
 		})
-		return telegram.editMessageText(
-			chatId,
-			messageId,
-			null,
-			phrases.deleted_plural,
-			{
-				reply_markup: {
-					inline_keyboard: [
-						[{
+		return telegram.editMessageText(chatId, messageId, null, phrases.deleted_plural, {
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
 							text: phrases.button_recover_plural,
-							callback_data: ["recover_media_group", mediaGroupId].join(",")
-						}],
-						inlineShareButton,
-					]
-				},
-				parse_mode: "Markdown",
-			}
-		)
-	}
-	else if (command === "recover_media_group") {
+							callback_data: ["recover_media_group", mediaGroupId].join(","),
+						},
+					],
+					inlineShareButton,
+				],
+			},
+			parse_mode: "Markdown",
+		})
+	} else if (command === "recover_media_group") {
 		const mediaGroupId = data[1]
 		setMediaGroupDeletedState({
 			is_deleted: 0,
 			chat_id: chatId,
 			media_group_id: mediaGroupId,
 		})
-		return telegram.editMessageText(
-			chatId,
-			messageId,
-			null,
-			phrases.recovered_plural,
-			{
-				reply_markup: {
-					inline_keyboard: [
-						[{
+		return telegram.editMessageText(chatId, messageId, null, phrases.recovered_plural, {
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
 							text: phrases.button_delete_plural,
-							callback_data: ["delete_media_group", mediaGroupId].join(",")
-						}],
-						inlineShareButton,
-					]
-				},
-				parse_mode: "Markdown",
-			}
-		)
+							callback_data: ["delete_media_group", mediaGroupId].join(","),
+						},
+					],
+					inlineShareButton,
+				],
+			},
+			parse_mode: "Markdown",
+		})
+	} else if (command === "drop") {
+		const isPremiumUser_ = await isPremiumUser({chat_id: chatId})
+		if (isPremiumUser_) {
+			await deleteAllUsersFiles({
+				chat_id: chatId,
+			})
+			ctx.replyWithMarkdown(phrases.drop_success)
+		} else {
+			ctx.replyWithMarkdown(phrases.become_premium)
+		}
 	}
 })
 
@@ -512,16 +717,19 @@ bot.on("inline_query", async ctx => {
 
 	const ownCaptionMatch = query.match(/\.\.(.+)$/)
 	const ownCaption = ownCaptionMatch ? ownCaptionMatch[1] : false
-	ownCaptionMatch ? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length)) : (query = query.replace(/\.\.$/, ""))
+	ownCaptionMatch
+		? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length))
+		: (query = query.replace(/\.\.$/, ""))
 
-	const filterTypeMatch = query.match(/^(video|gif|photo)\s?/)
+	const filterTypeMatch = query.match(new RegExp(`^(${Object.keys(types).join("|")})\s?`))
 	const filterType = filterTypeMatch ? filterTypeMatch[1] : false
-	filterTypeMatch && (query = removeSubstr(query, filterTypeMatch.index, filterTypeMatch[0].length))
+	filterTypeMatch &&
+		(query = removeSubstr(query, filterTypeMatch.index, filterTypeMatch[0].length))
 
 	query = query.toLowerCase().trim()
 
 	log(`Inline query: ${query}`)
-	
+
 	if (/^,+$/.test(query)) {
 		return ctx.answerInlineQuery([], {
 			cache_time: 2,
@@ -529,37 +737,32 @@ bot.on("inline_query", async ctx => {
 			switch_pm_parameter: "start",
 			is_personal: true,
 		})
-	}
-	else if (query.length === 0) {
-		const usersFiles = filterType ?
-			await getUserFilesOfType({
-				chat_id: chatId,
-				type: filterType,
-			})
-			:
-			await getUserFiles({
-				chat_id: chatId,
-			})
+	} else if (query.length === 0) {
+		const usersFiles = filterType
+			? await getUserFilesOfType({
+					chat_id: chatId,
+					type: filterType,
+			  })
+			: await getUserFiles({
+					chat_id: chatId,
+			  })
 		if (usersFiles.length > 0) {
-			const results = usersFiles
-				.slice(...currentPageLimitOffset)
-				.map(file => {
-					const result = {
-						type: file.type,
-						id: file.id,
-						[typeParamsMap[file.type]]: file.file_id,
-					}
-					ownCaption && (result.caption = ownCaption)
-					file.type === "video" && (result.title = "Video")
-					return result
-				})
+			const results = usersFiles.slice(...currentPageLimitOffset).map(file => {
+				const result = {
+					type: file.type,
+					id: file.id,
+					[types[file.type].inlineResultKey]: file.file_id,
+				}
+				ownCaption && (result.caption = ownCaption)
+				file.type === "video" && (result.title = "Video")
+				return result
+			})
 			return ctx.answerInlineQuery(results, {
 				cache_time: 2,
 				next_offset: usersFiles.slice(...nextPageLimitOffset).length > 0 ? page + 1 : "",
 				is_personal: true,
 			})
-		}
-		else {
+		} else {
 			return ctx.answerInlineQuery([], {
 				cache_time: 2,
 				switch_pm_text: phrases.you_have_no_pictures,
@@ -568,17 +771,15 @@ bot.on("inline_query", async ctx => {
 				is_personal: true,
 			})
 		}
-	}
-	else {
-		const usersFiles = filterType ?
-			await getUserFilesOfType({
-				chat_id: chatId,
-				type: filterType,
-			})
-			:
-			await getUserFiles({
-				chat_id: chatId,
-			})
+	} else {
+		const usersFiles = filterType
+			? await getUserFilesOfType({
+					chat_id: chatId,
+					type: filterType,
+			  })
+			: await getUserFiles({
+					chat_id: chatId,
+			  })
 		if (usersFiles.length === 0) {
 			return ctx.answerInlineQuery([], {
 				cache_time: 2,
@@ -613,29 +814,22 @@ bot.on("inline_query", async ctx => {
 				) {
 					!results.includes(file) && results.push(file)
 					continue filedIterator
-				}
-				else if (
-					queryVariant.length > 0 &&
-					tags.length > 0 &&
-					queryVariant === tags
-				) {
+				} else if (queryVariant.length > 0 && tags.length > 0 && queryVariant === tags) {
 					!results.includes(file) && results.push(file)
 					continue filedIterator
 				}
 			}
 		}
-		const results_ = results
-			.slice(...currentPageLimitOffset)
-			.map(file => {
-				let result = {
-					type: file.type,
-					id: file.id,
-					[typeParamsMap[file.type]]: file.file_id,
-				}
-				ownCaption && (result.caption = ownCaption)
-				file.type === "video" && (result.title = "Video")
-				return result
-			})
+		const results_ = results.slice(...currentPageLimitOffset).map(file => {
+			let result = {
+				type: file.type,
+				id: file.id,
+				[types[file.type].inlineResultKey]: file.file_id,
+			}
+			ownCaption && (result.caption = ownCaption)
+			file.type === "video" && (result.title = "Video")
+			return result
+		})
 		const body = {
 			cache_time: 2,
 			next_offset: results.slice(...nextPageLimitOffset).length > 0 ? page + 1 : "",
@@ -661,6 +855,12 @@ bot.on("chosen_inline_result", async ctx => {
 
 bot.launch()
 
-/*start - 😎 Начать
+/*
+start - 😎 Начать
 hints - 💡 Советы
-donate - 💸 Задонатить*/
+donate - 💸 Задонатить
+statistics - 📈 Статистика
+move - 🔁 Перенос данных
+drop - ❌ Удалить все файлы
+premium - 👑 Стать Premium
+*/
