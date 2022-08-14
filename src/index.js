@@ -739,7 +739,8 @@ bot.on("inline_query", async ctx => {
 				}
 				type.canHaveCaption && ownCaption && (result.caption = ownCaption)
 				type.mustHaveTitle &&
-					(result.title = file.title || `${file.type} ${getDateString(file.date)}`)
+					(result.title =
+						file.title || file.tags || `${file.type} ${getDateString(file.date)}`)
 				return result
 			})
 			return await ctx.answerInlineQuery(results, {
@@ -813,7 +814,9 @@ bot.on("inline_query", async ctx => {
 				[type.inlineResultKey]: file.file_id,
 			}
 			type.canHaveCaption && ownCaption && (result.caption = ownCaption)
-			type.mustHaveTitle && (result.title = file.tags || file.type)
+			type.mustHaveTitle &&
+				(result.title =
+					file.title || file.tags || `${file.type} ${getDateString(file.date)}`)
 			return result
 		})
 		const body = {
