@@ -13,9 +13,10 @@ const saveFile = ({
 	file_size,
 	file_id,
 	file_unique_id,
-	height,
-	width,
+	height = 0,
+	width = 0,
 	tags = "",
+	title = "",
 	file_message_id,
 	tags_message_id,
 	media_group_id = "",
@@ -33,6 +34,7 @@ const saveFile = ({
 				\`height\` = ?,
 				\`width\` = ?,
 				\`tags\` = ?,
+				\`title\` = ?,
 				\`file_message_id\` = ?,
 				\`tags_message_id\` = ?,
 				\`media_group_id\` = ?,
@@ -45,9 +47,10 @@ const saveFile = ({
 				file_size,
 				file_id,
 				file_unique_id,
-				height,
-				width,
+				height || 0,
+				width || 0,
 				tags,
+				title,
 				file_message_id,
 				tags_message_id,
 				media_group_id,
@@ -259,6 +262,7 @@ const getFile = ({chat_id, message_id}) =>
 				\`chat_id\`,
 				\`file_id\`,
 				\`tags\`,
+				\`title\`,
 				\`file_message_id\`,
 				\`used_count\`,
 				\`is_deleted\`,
@@ -285,14 +289,16 @@ const getUserFiles = ({chat_id}) =>
 			`
 			SELECT
 				\`id\`,
-				\`type\`,
+				IF(\`type\` = "video_note", "video", \`type\`) AS \`type\`,
 				\`chat_id\`,
 				\`file_id\`,
 				\`tags\`,
+				\`title\`,
 				\`file_message_id\`,
 				\`used_count\`,
 				\`is_deleted\`,
-				\`media_group_id\`
+				\`media_group_id\`,
+				\`date\`
 			FROM \`${config.FILES_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
@@ -348,14 +354,16 @@ const getUserFilesOfType = ({chat_id, type}) =>
 			`
 			SELECT
 				\`id\`,
-				\`type\`,
+				IF(\`type\` = "video_note", "video", \`type\`) AS \`type\`,
 				\`chat_id\`,
 				\`file_id\`,
 				\`tags\`,
+				\`title\`,
 				\`file_message_id\`,
 				\`used_count\`,
 				\`is_deleted\`,
-				\`media_group_id\`
+				\`media_group_id\`,
+				\`date\`
 			FROM \`${config.FILES_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
