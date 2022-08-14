@@ -5,7 +5,7 @@ module.exports = {
 		extractMediaItem: message => message.animation || message.document,
 		extractTitle: message => message?.animation?.file_name || message?.document?.file_name,
 		isPremium: false,
-		canHaveCaption: true,
+		//canHaveCaption: true,
 		mustHaveTitle: false,
 	},
 	photo: {
@@ -13,7 +13,7 @@ module.exports = {
 		sendCtxMethod: "replyWithPhoto",
 		extractMediaItem: message => arrEnd(message.photo),
 		isPremium: false,
-		canHaveCaption: true,
+		//canHaveCaption: true,
 		mustHaveTitle: false,
 	},
 	video: {
@@ -22,7 +22,7 @@ module.exports = {
 		extractMediaItem: message => message.video,
 		extractTitle: message => message.video.file_name,
 		isPremium: false,
-		canHaveCaption: true,
+		//canHaveCaption: true,
 		mustHaveTitle: true,
 	},
 	sticker: {
@@ -30,7 +30,7 @@ module.exports = {
 		sendCtxMethod: "replyWithSticker",
 		extractMediaItem: message => message.sticker,
 		isPremium: true,
-		canHaveCaption: false,
+		//canHaveCaption: false,
 		mustHaveTitle: false,
 	},
 	voice: {
@@ -38,7 +38,7 @@ module.exports = {
 		sendCtxMethod: "replyWithVoice",
 		extractMediaItem: message => message.voice,
 		isPremium: false,
-		canHaveCaption: true,
+		//canHaveCaption: true,
 		mustHaveTitle: true,
 	},
 	video_note: {
@@ -46,7 +46,7 @@ module.exports = {
 		sendCtxMethod: "replyWithVideo",
 		extractMediaItem: message => message.video_note,
 		isPremium: true,
-		canHaveCaption: true,
+		//canHaveCaption: false,
 		mustHaveTitle: true,
 	},
 	audio: {
@@ -64,7 +64,7 @@ module.exports = {
 			}
 		},
 		isPremium: false,
-		canHaveCaption: true,
+		//canHaveCaption: true,
 		mustHaveTitle: false,
 	},
 	document: {
@@ -73,7 +73,7 @@ module.exports = {
 		extractMediaItem: message => message.document,
 		extractTitle: message => message.document.file_name,
 		isPremium: false,
-		canHaveCaption: true,
+		//canHaveCaption: true,
 		mustHaveTitle: true,
 	},
 }

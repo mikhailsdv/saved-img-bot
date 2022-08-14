@@ -545,11 +545,15 @@ const getStatistics = ({chat_id}) =>
 				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ?) as \`count\`,
 				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "photo") as \`photos\`,
 				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "video") as \`videos\`,
+				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "video_note") as \`video_notes\`,
+				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "document") as \`documents\`,
+				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "audio") as \`audios\`,
+				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "voice") as \`voices\`,
 				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "sticker") as \`stickers\`,
 				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "gif") as \`gifs\`,
 				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`tags\` != "") as \`has_tags\`
 		`,
-			[chat_id, chat_id, chat_id, chat_id, chat_id, chat_id],
+			Array(10).fill(chat_id),
 			(error, results, fields) => {
 				if (error) {
 					reject(error)

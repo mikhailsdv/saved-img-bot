@@ -147,11 +147,6 @@ bot.start(async ctx => {
 	}
 })
 
-bot.command("donate", async ctx => {
-	log("Command /donate")
-	return await ctx.replyWithMarkdown(phrases.donate)
-})
-
 bot.command("premium", async ctx => {
 	log("Command /premium")
 	return await ctx.replyWithMarkdown(phrases.become_premium)
@@ -345,30 +340,21 @@ bot.command("statistics", async ctx => {
 			message = message.replace(key, statistics[key])
 		}
 		await ctx.replyWithMarkdown(message)
-		await sleep(300)
+		await sleep(500)
 		const mostUsedFile = await getMostUsedFile({
 			chat_id: chatId,
 		})
 		if (!mostUsedFile.length) return
 		const {type, file_id, used_count} = mostUsedFile[0]
 		const {canHaveCaption, sendCtxMethod} = types[type]
-		if (canHaveCaption) {
-			await ctx[sendCtxMethod](file_id, {
-				caption: phrases.most_used_file.replace(
-					"count",
-					`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
-				),
-			})
-		} else {
-			await ctx[sendCtxMethod](file_id)
-			await sleep(300)
-			await ctx.replyWithMarkdown(
-				phrases.most_used_file.replace(
-					"count",
-					`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
-				)
+		await ctx[sendCtxMethod](file_id)
+		await sleep(300)
+		await ctx.replyWithMarkdown(
+			phrases.most_used_file.replace(
+				"count",
+				`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
 			)
-		}
+		)
 	} else {
 		await ctx.replyWithMarkdown(phrases.statistics_unavailable)
 		await sleep(300)
@@ -858,9 +844,8 @@ bot.launch()
 /*
 start - 😎 Начать
 hints - 💡 Советы
-donate - 💸 Задонатить
+premium - 👑 Стать Premium
 statistics - 📈 Статистика
 move - 🔁 Перенос данных
 drop - ❌ Удалить все файлы
-premium - 👑 Стать Premium
 */
