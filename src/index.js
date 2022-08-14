@@ -1,7 +1,7 @@
 const {Telegraf, Telegram} = require("telegraf")
 const config = require("./config")
-config.BOT_ID = Number(config.BOT_TOKEN.match(/^\d+/)[0])
 const phrases = require("./phrases")
+const types = require("./types")
 const {
 	saveFile,
 	createUser,
@@ -34,32 +34,10 @@ const {
 	createMoveHash,
 	isValidMoveHash,
 	log,
+	getDateString,
 } = require("./utils")
 const telegram = new Telegram(config.BOT_TOKEN)
 const bot = new Telegraf(config.BOT_TOKEN)
-
-const types = {
-	gif: {
-		inlineResultKey: "gif_file_id",
-		sendCtxMethod: "replyWithAnimation",
-		extractMediaItem: message => message.animation || message.document,
-	},
-	photo: {
-		inlineResultKey: "photo_file_id",
-		sendCtxMethod: "replyWithPhoto",
-		extractMediaItem: message => arrEnd(message.photo),
-	},
-	video: {
-		inlineResultKey: "video_file_id",
-		sendCtxMethod: "replyWithVideo",
-		extractMediaItem: message => message.video,
-	},
-	sticker: {
-		inlineResultKey: "sticker_file_id",
-		sendCtxMethod: "replyWithSticker",
-		extractMediaItem: message => message.sticker,
-	},
-}
 
 const inlineShareButton = [
 	{
@@ -74,7 +52,7 @@ bot.use(require("./middlewares/gif"))
 
 bot.on("message", (ctx, next) => {
 	const message = ctx.message
-	if (message?.via_bot?.id !== config.BOT_ID) next()
+	if (message?.via_bot?.id !== ctx.botInfo.id) next()
 })
 
 bot.catch((err, ctx) => {
@@ -101,7 +79,7 @@ bot.start(async ctx => {
 			})
 			if (isValidMoveHash({date, id, hash})) {
 				if (fromChatId === toChatId) {
-					return ctx.replyWithMarkdown(phrases.move_same_account)
+					return await ctx.replyWithMarkdown(phrases.move_same_account)
 				} else {
 					try {
 						log("Moving...")
@@ -128,22 +106,22 @@ bot.start(async ctx => {
 						}
 						log("Move status:", moveStatus)
 
-						return ctx.replyWithMarkdown(
+						return await ctx.replyWithMarkdown(
 							moveStatus ? phrases.move_success : phrases.move_failed
 						)
 					} catch (err) {
 						log("Move error:", err)
-						return ctx.replyWithMarkdown(phrases.move_failed)
+						return await ctx.replyWithMarkdown(phrases.move_failed)
 					}
 				}
 			} else {
-				return ctx.replyWithMarkdown(phrases.move_error)
+				return await ctx.replyWithMarkdown(phrases.move_error)
 			}
 		} else {
-			return ctx.replyWithMarkdown(phrases.move_error)
+			return await ctx.replyWithMarkdown(phrases.move_error)
 		}
 	} else {
-		ctx.replyWithMarkdown(phrases.start, {
+		await ctx.replyWithMarkdown(phrases.start, {
 			reply_markup: {
 				inline_keyboard: [
 					[
@@ -169,33 +147,33 @@ bot.start(async ctx => {
 	}
 })
 
-bot.command("donate", ctx => {
+bot.command("donate", async ctx => {
 	log("Command /donate")
-	return ctx.replyWithMarkdown(phrases.donate)
+	return await ctx.replyWithMarkdown(phrases.donate)
 })
 
-bot.command("premium", ctx => {
+bot.command("premium", async ctx => {
 	log("Command /premium")
-	return ctx.replyWithMarkdown(phrases.become_premium)
+	return await ctx.replyWithMarkdown(phrases.become_premium)
 })
 
-bot.command("hints", ctx => {
+bot.command("hints", async ctx => {
 	log("Command /hints")
-	return ctx.replyWithMarkdown(phrases.hints)
+	return await ctx.replyWithMarkdown(phrases.hints)
 })
 
-bot.command("commands", ctx => {
+bot.command("commands", async ctx => {
 	log("Command /commands")
-	return ctx.replyWithMarkdown(phrases.commands)
+	return await ctx.replyWithMarkdown(phrases.commands)
 })
 
-bot.on("forward_with_text", ctx => {
+bot.on("forward_with_text", async ctx => {
 	const chatId = ctx.chat.id
 	const {text, media, media_group_id, tags_message_id} = ctx.forwardWithText
 
 	if (media_group_id) {
-		media.forEach(mediaItem => {
-			saveFile({
+		for (const mediaItem of media) {
+			await saveFile({
 				chat_id: chatId,
 				type: mediaItem.type,
 				file_size: mediaItem.file_size,
@@ -204,13 +182,14 @@ bot.on("forward_with_text", ctx => {
 				height: mediaItem.height,
 				width: mediaItem.width,
 				tags: text,
+				title: types[mediaItem.type].extractTitle?.({[mediaItem.type]: mediaItem}) || "",
 				file_message_id: mediaItem.message_id,
 				tags_message_id: tags_message_id,
 				media_group_id: media_group_id,
 			})
-		})
+		}
 
-		ctx.replyWithMarkdown(phrases.saved_plural_own_caption, {
+		await ctx.replyWithMarkdown(phrases.saved_plural_own_caption, {
 			reply_to_message_id: media[0].message_id,
 			reply_markup: {
 				inline_keyboard: [
@@ -226,7 +205,8 @@ bot.on("forward_with_text", ctx => {
 		})
 	} else {
 		const mediaItem = media[0]
-		saveFile({
+		const title = types[mediaItem.type]?.extractTitle?.({[mediaItem.type]: mediaItem}) || ""
+		await saveFile({
 			chat_id: chatId,
 			type: mediaItem.type,
 			file_size: mediaItem.file_size,
@@ -235,11 +215,12 @@ bot.on("forward_with_text", ctx => {
 			height: mediaItem.height,
 			width: mediaItem.width,
 			tags: text,
+			title,
 			file_message_id: mediaItem.message_id,
 			tags_message_id: tags_message_id,
 		})
 
-		ctx.replyWithMarkdown(phrases.saved_single_own_caption, {
+		await ctx.replyWithMarkdown(phrases.saved_single_own_caption, {
 			reply_to_message_id: mediaItem.message_id,
 			reply_markup: {
 				inline_keyboard: [
@@ -256,12 +237,13 @@ bot.on("forward_with_text", ctx => {
 	}
 })
 
-bot.on("media_group", ctx => {
+bot.on("media_group", async ctx => {
 	const chatId = ctx.chat.id
 	const {text, media, media_group_id} = ctx.mediaGroup
 
-	media.forEach(mediaItem => {
-		saveFile({
+	for (const mediaItem of media) {
+		const title = types[mediaItem.type]?.extractTitle?.({[mediaItem.type]: mediaItem}) || ""
+		await saveFile({
 			chat_id: chatId,
 			type: mediaItem.type,
 			file_size: mediaItem.file_size,
@@ -269,14 +251,15 @@ bot.on("media_group", ctx => {
 			file_unique_id: mediaItem.file_unique_id,
 			height: mediaItem.height,
 			width: mediaItem.width,
-			tags: text,
+			tags: text || title,
+			title,
 			file_message_id: mediaItem.message_id,
 			tags_message_id: mediaItem.message_id,
 			media_group_id: media_group_id,
 		})
-	})
+	}
 
-	ctx.replyWithMarkdown(
+	await ctx.replyWithMarkdown(
 		text ? phrases.saved_plural_own_caption : phrases.saved_plural_no_caption,
 		{
 			reply_to_message_id: media[0].message_id,
@@ -299,22 +282,23 @@ bot.on(Object.keys(types), async ctx => {
 	const message = ctx.message
 	const chatId = ctx.chat.id
 	const messageId = message.message_id
-	const caption = message.caption
 	const typeKeys = Object.keys(types)
 	const mediaType = ctx.updateSubTypes.find(item => typeKeys.includes(item))
+	const type = types[mediaType]
 
-	if (mediaType === "sticker") {
+	if (type.isPremium) {
 		const isPremiumUser_ = await isPremiumUser({chat_id: chatId})
 		if (!isPremiumUser_) {
-			return ctx.replyWithMarkdown(phrases.become_premium)
+			return await ctx.replyWithMarkdown(phrases.become_premium)
 		}
 	}
 
-	const type = types[mediaType]
+	const title = type.extractTitle?.(message) || ""
+	const caption = message.caption || title
 	const mediaItem = type.extractMediaItem(message)
 	log(`New saved ${mediaType}`)
 
-	saveFile({
+	await saveFile({
 		chat_id: chatId,
 		type: mediaType,
 		file_size: mediaItem.file_size,
@@ -323,11 +307,12 @@ bot.on(Object.keys(types), async ctx => {
 		height: mediaItem.height,
 		width: mediaItem.width,
 		tags: caption,
+		title,
 		file_message_id: messageId,
 		tags_message_id: messageId,
 	})
 
-	ctx.replyWithMarkdown(
+	await ctx.replyWithMarkdown(
 		caption ? phrases.saved_single_own_caption : phrases.saved_single_no_caption,
 		{
 			reply_to_message_id: messageId,
@@ -359,15 +344,23 @@ bot.command("statistics", async ctx => {
 		for (const key in statistics) {
 			message = message.replace(key, statistics[key])
 		}
-		ctx.replyWithMarkdown(message)
+		await ctx.replyWithMarkdown(message)
 		await sleep(300)
 		const mostUsedFile = await getMostUsedFile({
 			chat_id: chatId,
 		})
 		if (!mostUsedFile.length) return
 		const {type, file_id, used_count} = mostUsedFile[0]
-		if (type === "sticker") {
-			await ctx[types[type].sendCtxMethod](file_id)
+		const {canHaveCaption, sendCtxMethod} = types[type]
+		if (canHaveCaption) {
+			await ctx[sendCtxMethod](file_id, {
+				caption: phrases.most_used_file.replace(
+					"count",
+					`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
+				),
+			})
+		} else {
+			await ctx[sendCtxMethod](file_id)
 			await sleep(300)
 			await ctx.replyWithMarkdown(
 				phrases.most_used_file.replace(
@@ -375,24 +368,17 @@ bot.command("statistics", async ctx => {
 					`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
 				)
 			)
-		} else {
-			ctx[types[type].sendCtxMethod](file_id, {
-				caption: phrases.most_used_file.replace(
-					"count",
-					`${used_count} ${pluralize(used_count, "раз", "раза", "раз")}.`
-				),
-			})
 		}
 	} else {
-		ctx.replyWithMarkdown(phrases.statistics_unavailable)
+		await ctx.replyWithMarkdown(phrases.statistics_unavailable)
 		await sleep(300)
-		ctx.replyWithMarkdown(phrases.become_premium)
+		await ctx.replyWithMarkdown(phrases.become_premium)
 	}
 })
 
 bot.command("drop", async ctx => {
 	log("Command /drop")
-	return ctx.replyWithMarkdown(phrases.drop_confirm, {
+	return await ctx.replyWithMarkdown(phrases.drop_confirm, {
 		reply_markup: {
 			inline_keyboard: [
 				[
@@ -430,7 +416,7 @@ bot.command("move", async ctx => {
 			chat_id: chatId,
 		})
 		const moveHash = createMoveHash({date, id})
-		ctx.replyWithMarkdown(phrases.move_instruction, {
+		await ctx.replyWithMarkdown(phrases.move_instruction, {
 			reply_markup: {
 				inline_keyboard: [
 					[
@@ -443,7 +429,7 @@ bot.command("move", async ctx => {
 			},
 		})
 	} else {
-		ctx.replyWithMarkdown(phrases.become_premium)
+		await ctx.replyWithMarkdown(phrases.become_premium)
 	}
 })
 
@@ -455,8 +441,8 @@ bot.on("text", async ctx => {
 
 	if (message.reply_to_message) {
 		const replyToMessageId = message.reply_to_message.message_id
-		if (message.reply_to_message.from.id === config.BOT_ID) {
-			return ctx.reply(phrases.error_message_without_context)
+		if (message.reply_to_message.from.id === ctx.botInfo.id) {
+			return await ctx.reply(phrases.error_message_without_context)
 		}
 
 		const fileExist = await isFileExist({
@@ -464,10 +450,10 @@ bot.on("text", async ctx => {
 			message_id: replyToMessageId,
 		})
 		if (!fileExist) {
-			return ctx.reply(phrases.error_edit_file_not_found)
+			return await ctx.reply(phrases.error_edit_file_not_found)
 		}
 		if (!message.text) {
-			return ctx.reply(phrases.error_edit_tags_not_specified)
+			return await ctx.reply(phrases.error_edit_tags_not_specified)
 		}
 
 		log("Tag update")
@@ -494,7 +480,7 @@ bot.on("text", async ctx => {
 			})
 		}
 
-		return ctx.replyWithMarkdown(
+		return await ctx.replyWithMarkdown(
 			isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single,
 			{
 				reply_to_message_id: replyToMessageId,
@@ -527,15 +513,15 @@ bot.on("text", async ctx => {
 			}
 		)
 	} else if (isForwarded) {
-		return ctx.reply(phrases.error_no_file)
+		return await ctx.reply(phrases.error_no_file)
 	} else {
-		return ctx.reply(phrases.error_message_without_context)
+		return await ctx.reply(phrases.error_message_without_context)
 	}
 })
 
 bot.on("edited_message", async ctx => {
 	log("Edited message")
-	const message = ctx.update.edited_message
+	const message = ctx.editedMessage
 	const chatId = ctx.chat.id
 	const messageId = message.message_id
 	const fileMessageId = message.reply_to_message
@@ -549,10 +535,10 @@ bot.on("edited_message", async ctx => {
 	})
 
 	if (!fileExist) {
-		return ctx.reply(phrases.error_edit_file_not_found)
+		return await ctx.reply(phrases.error_edit_file_not_found)
 	}
 	if (!newTags) {
-		return ctx.reply(phrases.error_edit_tags_not_specified)
+		return await ctx.reply(phrases.error_edit_tags_not_specified)
 	}
 
 	const file = await getFile({
@@ -577,7 +563,7 @@ bot.on("edited_message", async ctx => {
 		})
 	}
 
-	return ctx.replyWithMarkdown(
+	return await ctx.replyWithMarkdown(
 		isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single,
 		{
 			reply_to_message_id: file.file_message_id,
@@ -613,17 +599,17 @@ bot.on("edited_message", async ctx => {
 
 bot.on("callback_query", async ctx => {
 	log("Button pressed")
-	const callbackQuery = ctx.update.callback_query
+	const callbackQuery = ctx.callbackQuery
 	const messageId = callbackQuery.message.message_id
 	const chatId = callbackQuery.from.id
 	const data = callbackQuery.data.split(",")
 	const command = data[0]
 
-	ctx.answerCbQuery()
+	await ctx.answerCbQuery()
 
 	if (command === "delete") {
 		const fileMessageId = Number(data[1])
-		setFileDeletedState({
+		await setFileDeletedState({
 			is_deleted: 1,
 			chat_id: chatId,
 			file_message_id: fileMessageId,
@@ -644,7 +630,7 @@ bot.on("callback_query", async ctx => {
 		})
 	} else if (command === "recover") {
 		const fileMessageId = Number(data[1])
-		setFileDeletedState({
+		await setFileDeletedState({
 			is_deleted: 0,
 			chat_id: chatId,
 			file_message_id: fileMessageId,
@@ -665,7 +651,7 @@ bot.on("callback_query", async ctx => {
 		})
 	} else if (command === "delete_media_group") {
 		const mediaGroupId = data[1]
-		setMediaGroupDeletedState({
+		await setMediaGroupDeletedState({
 			is_deleted: 1,
 			chat_id: chatId,
 			media_group_id: mediaGroupId,
@@ -686,7 +672,7 @@ bot.on("callback_query", async ctx => {
 		})
 	} else if (command === "recover_media_group") {
 		const mediaGroupId = data[1]
-		setMediaGroupDeletedState({
+		await setMediaGroupDeletedState({
 			is_deleted: 0,
 			chat_id: chatId,
 			media_group_id: mediaGroupId,
@@ -711,15 +697,15 @@ bot.on("callback_query", async ctx => {
 			await deleteAllUsersFiles({
 				chat_id: chatId,
 			})
-			ctx.replyWithMarkdown(phrases.drop_success)
+			await ctx.replyWithMarkdown(phrases.drop_success)
 		} else {
-			ctx.replyWithMarkdown(phrases.become_premium)
+			await ctx.replyWithMarkdown(phrases.become_premium)
 		}
 	}
 })
 
 bot.on("inline_query", async ctx => {
-	const inlineQuery = ctx.update.inline_query
+	const inlineQuery = ctx.inlineQuery
 	const chatId = inlineQuery.from.id
 	let query = inlineQuery.query.trim()
 	const page = inlineQuery.offset ? Number(inlineQuery.offset) : 0
@@ -732,7 +718,7 @@ bot.on("inline_query", async ctx => {
 		? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length))
 		: (query = query.replace(/\.\.$/, ""))
 
-	const filterTypeMatch = query.match(new RegExp(`^(${Object.keys(types).join("|")})\s?`))
+	const filterTypeMatch = query.match(new RegExp(`^(${Object.keys(types).join("|")})s?\s?`))
 	const filterType = filterTypeMatch ? filterTypeMatch[1] : false
 	filterTypeMatch &&
 		(query = removeSubstr(query, filterTypeMatch.index, filterTypeMatch[0].length))
@@ -742,7 +728,7 @@ bot.on("inline_query", async ctx => {
 	log(`Inline query: ${query}`)
 
 	if (/^,+$/.test(query)) {
-		return ctx.answerInlineQuery([], {
+		return await ctx.answerInlineQuery([], {
 			cache_time: 2,
 			switch_pm_text: "Введите больше символов",
 			switch_pm_parameter: "start",
@@ -759,22 +745,24 @@ bot.on("inline_query", async ctx => {
 			  })
 		if (usersFiles.length > 0) {
 			const results = usersFiles.slice(...currentPageLimitOffset).map(file => {
+				const type = types[file.type]
 				const result = {
 					type: file.type,
 					id: file.id,
-					[types[file.type].inlineResultKey]: file.file_id,
+					[type.inlineResultKey]: file.file_id,
 				}
-				ownCaption && (result.caption = ownCaption)
-				file.type === "video" && (result.title = "Video")
+				type.canHaveCaption && ownCaption && (result.caption = ownCaption)
+				type.mustHaveTitle &&
+					(result.title = file.title || `${file.type} ${getDateString(file.date)}`)
 				return result
 			})
-			return ctx.answerInlineQuery(results, {
+			return await ctx.answerInlineQuery(results, {
 				cache_time: 2,
 				next_offset: usersFiles.slice(...nextPageLimitOffset).length > 0 ? page + 1 : "",
 				is_personal: true,
 			})
 		} else {
-			return ctx.answerInlineQuery([], {
+			return await ctx.answerInlineQuery([], {
 				cache_time: 2,
 				switch_pm_text: phrases.you_have_no_pictures,
 				switch_pm_parameter: "start",
@@ -792,7 +780,7 @@ bot.on("inline_query", async ctx => {
 					chat_id: chatId,
 			  })
 		if (usersFiles.length === 0) {
-			return ctx.answerInlineQuery([], {
+			return await ctx.answerInlineQuery([], {
 				cache_time: 2,
 				switch_pm_text: phrases.you_have_no_pictures,
 				switch_pm_parameter: "start",
@@ -832,13 +820,14 @@ bot.on("inline_query", async ctx => {
 			}
 		}
 		const results_ = results.slice(...currentPageLimitOffset).map(file => {
+			const type = types[file.type]
 			let result = {
 				type: file.type,
 				id: file.id,
-				[types[file.type].inlineResultKey]: file.file_id,
+				[type.inlineResultKey]: file.file_id,
 			}
-			ownCaption && (result.caption = ownCaption)
-			file.type === "video" && (result.title = "Video")
+			type.canHaveCaption && ownCaption && (result.caption = ownCaption)
+			type.mustHaveTitle && (result.title = file.tags || file.type)
 			return result
 		})
 		const body = {
@@ -850,15 +839,15 @@ bot.on("inline_query", async ctx => {
 			body.switch_pm_text = phrases.nothing_found
 			body.switch_pm_parameter = "start"
 		}
-		ctx.answerInlineQuery(results_, body)
+		await ctx.answerInlineQuery(results_, body)
 	}
 })
 
 bot.on("chosen_inline_result", async ctx => {
 	log("Chosen inline result")
-	const fileId = Number(ctx.update.chosen_inline_result.result_id)
+	const fileId = Number(ctx.chosenInlineResult.result_id)
 	const chatId = ctx.from.id
-	increaseUsedCount({
+	await increaseUsedCount({
 		chat_id: chatId,
 		id: fileId,
 	})
