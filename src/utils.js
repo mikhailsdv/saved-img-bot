@@ -8,8 +8,8 @@ const zeroFirst = s => {
 
 const arrEnd = arr => (arr.length === 0 ? null : arr[arr.length - 1])
 
-const getDateString = () => {
-	let d = new Date()
+const getDateString = date => {
+	const d = date ? new Date(date) : new Date()
 	return `${zeroFirst(d.getDate())}.${zeroFirst(d.getMonth() + 1)}.${d.getFullYear()} ${zeroFirst(
 		d.getHours()
 	)}:${zeroFirst(d.getMinutes())}:${zeroFirst(d.getSeconds())}`
