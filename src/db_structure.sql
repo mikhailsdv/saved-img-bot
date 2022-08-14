@@ -40,6 +40,7 @@ CREATE TABLE `files` (
   `height` int(11) NOT NULL,
   `width` int(11) NOT NULL,
   `tags` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `file_message_id` int(11) NOT NULL,
   `tags_message_id` int(11) NOT NULL,
   `used_count` int(11) NOT NULL,
