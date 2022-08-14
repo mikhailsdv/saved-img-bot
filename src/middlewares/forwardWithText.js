@@ -1,8 +1,9 @@
 const {Composer} = require("telegraf")
 const {arrEnd} = require("../utils")
+const types = require("../types")
 
 const map = new Map()
-const mediaTypeKeys = ["photo", "video", "document"]
+const mediaTypeKeys = Object.keys(types)
 
 module.exports = (timeout = 500) =>
 	Composer.mount([...mediaTypeKeys, "text"], (ctx, next) => {
