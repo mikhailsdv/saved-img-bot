@@ -37,7 +37,7 @@ module.exports = {
 		inlineResultKey: "voice_file_id",
 		sendCtxMethod: "replyWithVoice",
 		extractMediaItem: message => message.voice,
-		isPremium: true,
+		isPremium: false,
 		canHaveCaption: true,
 		mustHaveTitle: true,
 	},
