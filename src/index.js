@@ -698,7 +698,7 @@ bot.on("inline_query", async ctx => {
 	const currentPageLimitOffset = [page * 50, page * 50 + 50]
 	const nextPageLimitOffset = [(page + 1) * 50, (page + 1) * 50 + 50]
 
-	const ownCaptionMatch = query.match(/\.\.(.+)$/)
+	const ownCaptionMatch = query.match(/\.\.([\S\s]+)$/)
 	const ownCaption = ownCaptionMatch ? ownCaptionMatch[1] : false
 	ownCaptionMatch
 		? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length))
