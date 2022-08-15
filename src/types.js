@@ -1,3 +1,5 @@
+const {arrEnd} = require("./utils")
+
 module.exports = {
 	gif: {
 		inlineResultKey: "gif_file_id",

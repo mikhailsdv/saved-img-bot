@@ -30,7 +30,6 @@ const {
 	sleep,
 	pluralize,
 	getTranslitVariants,
-	arrEnd,
 	createMoveHash,
 	isValidMoveHash,
 	log,
