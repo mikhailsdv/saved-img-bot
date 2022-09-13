@@ -1,5 +1,4 @@
 const {Composer} = require("telegraf")
-const {arrEnd} = require("../utils")
 const types = require("../types")
 
 const map = new Map()
@@ -13,32 +12,14 @@ module.exports = (timeout = 500) =>
 		if (map.has(fromId)) {
 			//second message (media)
 			const userMap = map.get(fromId)
-			if (mediaTypeKeys.some(mediaType => message[mediaType])) {
-				mediaTypeKeys.forEach(mediaType => {
-					const messageMedia = message[mediaType]
-					if (messageMedia) {
-						message.media_group_id && (userMap.media_group_id = message.media_group_id)
-						messageMedia.message_id = message.message_id
-						let messageMedia_ = {
-							message_id: message.message_id,
-							type: mediaType === "document" ? "gif" : mediaType,
-						}
-						if (mediaType === "document") {
-							if (messageMedia.mime_type === "image/gif") {
-								Object.assign(messageMedia_, messageMedia)
-								userMap.media.push(messageMedia_)
-							} else if (message.animation) {
-								Object.assign(messageMedia_, message.animation)
-								userMap.media.push(messageMedia_)
-							}
-						} else if (mediaType === "photo") {
-							Object.assign(messageMedia_, arrEnd(messageMedia))
-							userMap.media.push(messageMedia_)
-						} else {
-							Object.assign(messageMedia_, messageMedia)
-							userMap.media.push(messageMedia_)
-						}
-					}
+			const mediaType = mediaTypeKeys.find(mediaType => message[mediaType])
+			if (mediaType) {
+				message.media_group_id && (userMap.media_group_id = message.media_group_id)
+				const mediaItem = types[mediaType].extractMediaItem(message)
+				userMap.media.push({
+					...mediaItem,
+					message_id: message.message_id,
+					type: mediaType,
 				})
 			} else {
 				clearTimeout(userMap.timeout)
