@@ -1,0 +1,14 @@
+{
+	"extends": ["eslint:recommended"],
+	"rules": {
+		"import/no-anonymous-default-export": "off",
+		"no-irregular-whitespace": "off"
+	},
+	"parserOptions": {
+		"ecmaVersion": "latest"
+	},
+	"env": {
+		"node": true,
+		"es6": true
+	}
+}
