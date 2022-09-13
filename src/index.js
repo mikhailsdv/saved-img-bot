@@ -45,8 +45,8 @@ const inlineShareButton = [
 	},
 ]
 
-bot.use(require("./middlewares/forwardWithText")())
-bot.use(require("./middlewares/mediaGroup")())
+bot.use(require("./middlewares/forward-with-text")())
+bot.use(require("./middlewares/media-group")())
 bot.use(require("./middlewares/gif"))
 
 bot.on("message", (ctx, next) => {
@@ -345,7 +345,7 @@ bot.command("statistics", async ctx => {
 		})
 		if (!mostUsedFile.length) return
 		const {type, file_id, used_count} = mostUsedFile[0]
-		const {canHaveCaption, sendCtxMethod} = types[type]
+		const {sendCtxMethod} = types[type]
 		await ctx[sendCtxMethod](file_id)
 		await sleep(300)
 		await ctx.replyWithMarkdown(
@@ -421,7 +421,6 @@ bot.command("move", async ctx => {
 bot.on("text", async ctx => {
 	const message = ctx.message
 	const chatId = ctx.chat.id
-	const messageId = message.message_id
 	const isForwarded = Boolean(message.forward_from_chat || message.forward_from || false)
 
 	if (message.reply_to_message) {
@@ -508,7 +507,6 @@ bot.on("edited_message", async ctx => {
 	log("Edited message")
 	const message = ctx.editedMessage
 	const chatId = ctx.chat.id
-	const messageId = message.message_id
 	const fileMessageId = message.reply_to_message
 		? message.reply_to_message.message_id
 		: message.message_id
