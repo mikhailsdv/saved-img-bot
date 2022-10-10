@@ -67,7 +67,7 @@ module.exports = {
 		},
 		isPremium: false,
 		canHaveCaption: true,
-		mustHaveTitle: false,
+		mustHaveTitle: true,
 	},
 	document: {
 		inlineResultKey: "document_file_id",
