@@ -2,7 +2,8 @@
 	"extends": ["eslint:recommended"],
 	"rules": {
 		"import/no-anonymous-default-export": "off",
-		"no-irregular-whitespace": "off"
+		"no-irregular-whitespace": "off",
+		"no-mixed-spaces-and-tabs": "off"
 	},
 	"parserOptions": {
 		"ecmaVersion": "latest"
