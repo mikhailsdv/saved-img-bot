@@ -72,6 +72,8 @@ const createMoveHash = ({date, id}) =>
 
 const isValidMoveHash = ({date, id, hash}) => createMoveHash({date, id}) === hash
 
+const isTitlelessAudio = file => file.type === "audio" && file.title === ""
+
 module.exports = {
 	trimMessage,
 	zeroFirst,
@@ -84,4 +86,5 @@ module.exports = {
 	sleep,
 	createMoveHash,
 	isValidMoveHash,
+	isTitlelessAudio,
 }

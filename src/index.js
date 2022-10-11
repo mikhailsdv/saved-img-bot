@@ -34,6 +34,7 @@ const {
 	isValidMoveHash,
 	log,
 	getDateString,
+	isTitlelessAudio,
 } = require("./utils")
 const telegram = new Telegram(config.BOT_TOKEN)
 const bot = new Telegraf(config.BOT_TOKEN)
@@ -728,6 +729,9 @@ bot.on("inline_query", async ctx => {
 			  })
 		if (usersFiles.length > 0) {
 			const results = usersFiles.slice(...currentPageLimitOffset).map(file => {
+				if (isTitlelessAudio(file)) {
+					file.type = "document"
+				}
 				const type = types[file.type]
 				const result = {
 					type: file.type,
@@ -778,6 +782,9 @@ bot.on("inline_query", async ctx => {
 		filedIterator: for (const file of usersFiles) {
 			const tags = file.tags.toLowerCase()
 			const tagsSplit = tags.split(/\s?,\s?/)
+			if (isTitlelessAudio(file)) {
+				file.type = "document"
+			}
 
 			for (let queryVariant of queryVariants) {
 				for (let tag of tagsSplit) {

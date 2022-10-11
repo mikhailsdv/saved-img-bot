@@ -57,12 +57,12 @@ module.exports = {
 		extractMediaItem: message => message.audio,
 		extractTitle: message => {
 			const {
-				audio: {performer, title, file_name},
+				audio: {performer, title},
 			} = message
 			if (performer || title) {
 				return [title, performer].filter(Boolean).join(" — ")
-			} else if (file_name) {
-				return file_name
+			} else {
+				return ""
 			}
 		},
 		isPremium: false,
