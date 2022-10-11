@@ -79,7 +79,9 @@ bot.start(async ctx => {
 			})
 			if (isValidMoveHash({date, id, hash})) {
 				if (fromChatId === toChatId) {
-					return await ctx.replyWithMarkdown(phrases.move_same_account)
+					return await ctx.replyWithMarkdown(
+						phrases.move_same_account
+					)
 				} else {
 					try {
 						log("Moving...")
@@ -107,7 +109,9 @@ bot.start(async ctx => {
 						log("Move status:", moveStatus)
 
 						return await ctx.replyWithMarkdown(
-							moveStatus ? phrases.move_success : phrases.move_failed
+							moveStatus
+								? phrases.move_success
+								: phrases.move_failed
 						)
 					} catch (err) {
 						log("Move error:", err)
@@ -177,7 +181,10 @@ bot.on("forward_with_text", async ctx => {
 				height: mediaItem.height,
 				width: mediaItem.width,
 				tags: text,
-				title: types[mediaItem.type].extractTitle?.({[mediaItem.type]: mediaItem}) || "",
+				title:
+					types[mediaItem.type].extractTitle?.({
+						[mediaItem.type]: mediaItem,
+					}) || "",
 				file_message_id: mediaItem.message_id,
 				tags_message_id: tags_message_id,
 				media_group_id: media_group_id,
@@ -191,7 +198,10 @@ bot.on("forward_with_text", async ctx => {
 					[
 						{
 							text: phrases.button_delete_plural,
-							callback_data: ["delete_media_group", media_group_id].join(","),
+							callback_data: [
+								"delete_media_group",
+								media_group_id,
+							].join(","),
 						},
 					],
 					inlineShareButton,
@@ -200,7 +210,10 @@ bot.on("forward_with_text", async ctx => {
 		})
 	} else {
 		const mediaItem = media[0]
-		const title = types[mediaItem.type]?.extractTitle?.({[mediaItem.type]: mediaItem}) || ""
+		const title =
+			types[mediaItem.type]?.extractTitle?.({
+				[mediaItem.type]: mediaItem,
+			}) || ""
 		await saveFile({
 			chat_id: chatId,
 			type: mediaItem.type,
@@ -222,7 +235,10 @@ bot.on("forward_with_text", async ctx => {
 					[
 						{
 							text: phrases.button_delete_single,
-							callback_data: ["delete", mediaItem.message_id].join(","),
+							callback_data: [
+								"delete",
+								mediaItem.message_id,
+							].join(","),
 						},
 					],
 					inlineShareButton,
@@ -237,7 +253,10 @@ bot.on("media_group", async ctx => {
 	const {text, media, media_group_id} = ctx.mediaGroup
 
 	for (const mediaItem of media) {
-		const title = types[mediaItem.type]?.extractTitle?.({[mediaItem.type]: mediaItem}) || ""
+		const title =
+			types[mediaItem.type]?.extractTitle?.({
+				[mediaItem.type]: mediaItem,
+			}) || ""
 		await saveFile({
 			chat_id: chatId,
 			type: mediaItem.type,
@@ -255,7 +274,9 @@ bot.on("media_group", async ctx => {
 	}
 
 	await ctx.replyWithMarkdown(
-		text ? phrases.saved_plural_own_caption : phrases.saved_plural_no_caption,
+		text
+			? phrases.saved_plural_own_caption
+			: phrases.saved_plural_no_caption,
 		{
 			reply_to_message_id: media[0].message_id,
 			reply_markup: {
@@ -263,7 +284,10 @@ bot.on("media_group", async ctx => {
 					[
 						{
 							text: phrases.button_delete_plural,
-							callback_data: ["delete_media_group", media_group_id].join(","),
+							callback_data: [
+								"delete_media_group",
+								media_group_id,
+							].join(","),
 						},
 					],
 					inlineShareButton,
@@ -308,7 +332,9 @@ bot.on(Object.keys(types), async ctx => {
 	})
 
 	await ctx.replyWithMarkdown(
-		caption ? phrases.saved_single_own_caption : phrases.saved_single_no_caption,
+		caption
+			? phrases.saved_single_own_caption
+			: phrases.saved_single_no_caption,
 		{
 			reply_to_message_id: messageId,
 			reply_markup: {
@@ -422,7 +448,9 @@ bot.command("move", async ctx => {
 bot.on("text", async ctx => {
 	const message = ctx.message
 	const chatId = ctx.chat.id
-	const isForwarded = Boolean(message.forward_from_chat || message.forward_from || false)
+	const isForwarded = Boolean(
+		message.forward_from_chat || message.forward_from || false
+	)
 
 	if (message.reply_to_message) {
 		const replyToMessageId = message.reply_to_message.message_id
@@ -466,7 +494,9 @@ bot.on("text", async ctx => {
 		}
 
 		return await ctx.replyWithMarkdown(
-			isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single,
+			isMediaGroup
+				? phrases.tags_updated_plural
+				: phrases.tags_updated_single,
 			{
 				reply_to_message_id: replyToMessageId,
 				reply_markup: {
@@ -488,7 +518,9 @@ bot.on("text", async ctx => {
 										: isMediaGroup
 										? "delete_media_group"
 										: "delete",
-									isMediaGroup ? file.media_group_id : replyToMessageId,
+									isMediaGroup
+										? file.media_group_id
+										: replyToMessageId,
 								].join(","),
 							},
 						],
@@ -548,7 +580,9 @@ bot.on("edited_message", async ctx => {
 	}
 
 	return await ctx.replyWithMarkdown(
-		isMediaGroup ? phrases.tags_updated_plural : phrases.tags_updated_single,
+		isMediaGroup
+			? phrases.tags_updated_plural
+			: phrases.tags_updated_single,
 		{
 			reply_to_message_id: file.file_message_id,
 			reply_markup: {
@@ -570,7 +604,9 @@ bot.on("edited_message", async ctx => {
 									: isMediaGroup
 									? "delete_media_group"
 									: "delete",
-								isMediaGroup ? file.media_group_id : file.file_message_id,
+								isMediaGroup
+									? file.media_group_id
+									: file.file_message_id,
 							].join(","),
 						},
 					],
@@ -598,20 +634,28 @@ bot.on("callback_query", async ctx => {
 			chat_id: chatId,
 			file_message_id: fileMessageId,
 		})
-		return telegram.editMessageText(chatId, messageId, null, phrases.deleted_single, {
-			reply_markup: {
-				inline_keyboard: [
-					[
-						{
-							text: phrases.button_recover_single,
-							callback_data: ["recover", fileMessageId].join(","),
-						},
+		return telegram.editMessageText(
+			chatId,
+			messageId,
+			null,
+			phrases.deleted_single,
+			{
+				reply_markup: {
+					inline_keyboard: [
+						[
+							{
+								text: phrases.button_recover_single,
+								callback_data: ["recover", fileMessageId].join(
+									","
+								),
+							},
+						],
+						inlineShareButton,
 					],
-					inlineShareButton,
-				],
-			},
-			parse_mode: "Markdown",
-		})
+				},
+				parse_mode: "Markdown",
+			}
+		)
 	} else if (command === "recover") {
 		const fileMessageId = Number(data[1])
 		await setFileDeletedState({
@@ -619,20 +663,28 @@ bot.on("callback_query", async ctx => {
 			chat_id: chatId,
 			file_message_id: fileMessageId,
 		})
-		return telegram.editMessageText(chatId, messageId, null, phrases.recovered_single, {
-			reply_markup: {
-				inline_keyboard: [
-					[
-						{
-							text: phrases.button_delete_single,
-							callback_data: ["delete", fileMessageId].join(","),
-						},
+		return telegram.editMessageText(
+			chatId,
+			messageId,
+			null,
+			phrases.recovered_single,
+			{
+				reply_markup: {
+					inline_keyboard: [
+						[
+							{
+								text: phrases.button_delete_single,
+								callback_data: ["delete", fileMessageId].join(
+									","
+								),
+							},
+						],
+						inlineShareButton,
 					],
-					inlineShareButton,
-				],
-			},
-			parse_mode: "Markdown",
-		})
+				},
+				parse_mode: "Markdown",
+			}
+		)
 	} else if (command === "delete_media_group") {
 		const mediaGroupId = data[1]
 		await setMediaGroupDeletedState({
@@ -640,20 +692,29 @@ bot.on("callback_query", async ctx => {
 			chat_id: chatId,
 			media_group_id: mediaGroupId,
 		})
-		return telegram.editMessageText(chatId, messageId, null, phrases.deleted_plural, {
-			reply_markup: {
-				inline_keyboard: [
-					[
-						{
-							text: phrases.button_recover_plural,
-							callback_data: ["recover_media_group", mediaGroupId].join(","),
-						},
+		return telegram.editMessageText(
+			chatId,
+			messageId,
+			null,
+			phrases.deleted_plural,
+			{
+				reply_markup: {
+					inline_keyboard: [
+						[
+							{
+								text: phrases.button_recover_plural,
+								callback_data: [
+									"recover_media_group",
+									mediaGroupId,
+								].join(","),
+							},
+						],
+						inlineShareButton,
 					],
-					inlineShareButton,
-				],
-			},
-			parse_mode: "Markdown",
-		})
+				},
+				parse_mode: "Markdown",
+			}
+		)
 	} else if (command === "recover_media_group") {
 		const mediaGroupId = data[1]
 		await setMediaGroupDeletedState({
@@ -661,20 +722,29 @@ bot.on("callback_query", async ctx => {
 			chat_id: chatId,
 			media_group_id: mediaGroupId,
 		})
-		return telegram.editMessageText(chatId, messageId, null, phrases.recovered_plural, {
-			reply_markup: {
-				inline_keyboard: [
-					[
-						{
-							text: phrases.button_delete_plural,
-							callback_data: ["delete_media_group", mediaGroupId].join(","),
-						},
+		return telegram.editMessageText(
+			chatId,
+			messageId,
+			null,
+			phrases.recovered_plural,
+			{
+				reply_markup: {
+					inline_keyboard: [
+						[
+							{
+								text: phrases.button_delete_plural,
+								callback_data: [
+									"delete_media_group",
+									mediaGroupId,
+								].join(","),
+							},
+						],
+						inlineShareButton,
 					],
-					inlineShareButton,
-				],
-			},
-			parse_mode: "Markdown",
-		})
+				},
+				parse_mode: "Markdown",
+			}
+		)
 	} else if (command === "drop") {
 		const isPremiumUser_ = await isPremiumUser({chat_id: chatId})
 		if (isPremiumUser_) {
@@ -699,13 +769,23 @@ bot.on("inline_query", async ctx => {
 	const ownCaptionMatch = query.match(/\.\.([\S\s]+)$/)
 	const ownCaption = ownCaptionMatch ? ownCaptionMatch[1] : false
 	ownCaptionMatch
-		? (query = removeSubstr(query, ownCaptionMatch.index, ownCaptionMatch[0].length))
+		? (query = removeSubstr(
+				query,
+				ownCaptionMatch.index,
+				ownCaptionMatch[0].length
+		  ))
 		: (query = query.replace(/\.\.$/, ""))
 
-	const filterTypeMatch = query.match(new RegExp(`^(${Object.keys(types).join("|")})s?\s?`))
+	const filterTypeMatch = query.match(
+		new RegExp(`^(${Object.keys(types).join("|")})s?\s?`) // eslint-disable-line
+	)
 	const filterType = filterTypeMatch ? filterTypeMatch[1] : false
 	filterTypeMatch &&
-		(query = removeSubstr(query, filterTypeMatch.index, filterTypeMatch[0].length))
+		(query = removeSubstr(
+			query,
+			filterTypeMatch.index,
+			filterTypeMatch[0].length
+		))
 
 	query = query.toLowerCase().trim()
 
@@ -728,25 +808,34 @@ bot.on("inline_query", async ctx => {
 					chat_id: chatId,
 			  })
 		if (usersFiles.length > 0) {
-			const results = usersFiles.slice(...currentPageLimitOffset).map(file => {
-				if (isTitlelessAudio(file)) {
-					file.type = "document"
-				}
-				const type = types[file.type]
-				const result = {
-					type: file.type,
-					id: file.id,
-					[type.inlineResultKey]: file.file_id,
-				}
-				type.canHaveCaption && ownCaption && (result.caption = ownCaption)
-				type.mustHaveTitle &&
-					(result.title =
-						file.title || file.tags || `${file.type} ${getDateString(file.date)}`)
-				return result
-			})
+			const results = usersFiles
+				.slice(...currentPageLimitOffset)
+				.map(file => {
+					if (isTitlelessAudio(file)) {
+						file.type = "document"
+					}
+					const type = types[file.type]
+					const result = {
+						type: file.type,
+						id: file.id,
+						[type.inlineResultKey]: file.file_id,
+					}
+					type.canHaveCaption &&
+						ownCaption &&
+						(result.caption = ownCaption)
+					type.mustHaveTitle &&
+						(result.title =
+							file.title ||
+							file.tags ||
+							`${file.type} ${getDateString(file.date)}`)
+					return result
+				})
 			return await ctx.answerInlineQuery(results, {
 				cache_time: 2,
-				next_offset: usersFiles.slice(...nextPageLimitOffset).length > 0 ? page + 1 : "",
+				next_offset:
+					usersFiles.slice(...nextPageLimitOffset).length > 0
+						? page + 1
+						: "",
 				is_personal: true,
 			})
 		} else {
@@ -792,19 +881,28 @@ bot.on("inline_query", async ctx => {
 					if (
 						queryVariant.length > 0 &&
 						tag.length >= 2 &&
-						(tag.includes(queryVariant) || queryVariant.includes(tag))
+						(tag.includes(queryVariant) ||
+							queryVariant.includes(tag))
 					) {
 						!results.includes(file) && results.push(file)
 						continue filedIterator
 					}
 				}
 				if (
-					(queryVariant.length > 0 && tags.length >= 2 && tags.includes(queryVariant)) ||
-					(tags.length > 0 && queryVariant.length >= 2 && queryVariant.includes(tags))
+					(queryVariant.length > 0 &&
+						tags.length >= 2 &&
+						tags.includes(queryVariant)) ||
+					(tags.length > 0 &&
+						queryVariant.length >= 2 &&
+						queryVariant.includes(tags))
 				) {
 					!results.includes(file) && results.push(file)
 					continue filedIterator
-				} else if (queryVariant.length > 0 && tags.length > 0 && queryVariant === tags) {
+				} else if (
+					queryVariant.length > 0 &&
+					tags.length > 0 &&
+					queryVariant === tags
+				) {
 					!results.includes(file) && results.push(file)
 					continue filedIterator
 				}
@@ -820,12 +918,17 @@ bot.on("inline_query", async ctx => {
 			type.canHaveCaption && ownCaption && (result.caption = ownCaption)
 			type.mustHaveTitle &&
 				(result.title =
-					file.title || file.tags || `${file.type} ${getDateString(file.date)}`)
+					file.title ||
+					file.tags ||
+					`${file.type} ${getDateString(file.date)}`)
 			return result
 		})
 		const body = {
 			cache_time: 2,
-			next_offset: results.slice(...nextPageLimitOffset).length > 0 ? page + 1 : "",
+			next_offset:
+				results.slice(...nextPageLimitOffset).length > 0
+					? page + 1
+					: "",
 			is_personal: true,
 		}
 		if (results_.length === 0 && page === 0) {

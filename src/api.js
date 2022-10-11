@@ -55,7 +55,7 @@ const saveFile = ({
 				tags_message_id,
 				media_group_id,
 			],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -69,7 +69,13 @@ const saveFile = ({
 		)
 	})
 
-const createUser = ({chat_id, username = "", first_name, language_code = "", is_premium = 0}) =>
+const createUser = ({
+	chat_id,
+	username = "",
+	first_name,
+	language_code = "",
+	is_premium = 0,
+}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
@@ -82,7 +88,7 @@ const createUser = ({chat_id, username = "", first_name, language_code = "", is_
 				\`is_premium\` = ?
 		`,
 			[chat_id, username, first_name, language_code, is_premium],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -106,7 +112,7 @@ const revokePremium = ({chat_id}) =>
 			WHERE \`chat_id\` = ?
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -130,7 +136,7 @@ const setPremium = ({chat_id}) =>
 			WHERE \`chat_id\` = ?
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -154,7 +160,7 @@ const moveFiles = ({from_chat_id, to_chat_id}) =>
 			WHERE \`chat_id\` = ?
 		`,
 			[to_chat_id, from_chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -181,7 +187,7 @@ const isFileExist = ({chat_id, message_id}) =>
 				(\`file_message_id\` = ? OR \`tags_message_id\` = ?)
 		`,
 			[chat_id, message_id, message_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -201,7 +207,7 @@ const isUserExist = ({chat_id}) =>
 				\`chat_id\` = ?
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -221,7 +227,7 @@ const getUser = ({chat_id}) =>
 				\`chat_id\` = ?
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -242,7 +248,7 @@ const isPremiumUser = ({chat_id}) =>
 				\`is_premium\` = 1
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -273,7 +279,7 @@ const getFile = ({chat_id, message_id}) =>
 				(\`file_message_id\` = ? OR \`tags_message_id\` = ?)
 		`,
 			[chat_id, message_id, message_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -306,7 +312,7 @@ const getUserFiles = ({chat_id}) =>
 			ORDER BY \`date\` DESC
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -372,7 +378,7 @@ const getUserFilesOfType = ({chat_id, type}) =>
 			ORDER BY \`date\` DESC
 		`,
 			[chat_id, type],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -394,7 +400,7 @@ const updateFileTags = ({chat_id, file_message_id, tags}) =>
 				\`file_message_id\` = ?
 		`,
 			[tags, chat_id, file_message_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -419,7 +425,7 @@ const deleteAllUsersFiles = ({chat_id}) =>
 				\`chat_id\` = ?
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -445,7 +451,7 @@ const updateMediaGroupTags = ({chat_id, media_group_id, tags}) =>
 				\`media_group_id\` = ?
 		`,
 			[tags, chat_id, media_group_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -471,7 +477,7 @@ const setFileDeletedState = ({is_deleted, chat_id, file_message_id}) =>
 				\`file_message_id\` = ?
 		`,
 			[is_deleted, chat_id, file_message_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -497,7 +503,7 @@ const setMediaGroupDeletedState = ({is_deleted, chat_id, media_group_id}) =>
 				\`media_group_id\` = ?
 		`,
 			[is_deleted, chat_id, media_group_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -523,7 +529,7 @@ const increaseUsedCount = ({id, chat_id}) =>
 				\`chat_id\` = ?
 		`,
 			[id, chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -554,7 +560,7 @@ const getStatistics = ({chat_id}) =>
 				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`tags\` != "") as \`has_tags\`
 		`,
 			Array(10).fill(chat_id),
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {
@@ -571,7 +577,7 @@ const getMostUsedFile = ({chat_id}) =>
 			SELECT \`file_id\`, \`type\`, \`used_count\` FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? ORDER BY \`used_count\` DESC LIMIT 1
 		`,
 			[chat_id],
-			(error, results/*, fields*/) => {
+			(error, results /*, fields*/) => {
 				if (error) {
 					reject(error)
 				} else {

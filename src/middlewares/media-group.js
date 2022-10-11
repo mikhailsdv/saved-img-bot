@@ -37,7 +37,8 @@ module.exports = (timeout = 500) =>
 		const mediaType = mediaTypeKeys.find(mediaType => message[mediaType])
 		if (mediaType) {
 			message.caption && (userMap.text = message.caption)
-			message.media_group_id && (userMap.media_group_id = message.media_group_id)
+			message.media_group_id &&
+				(userMap.media_group_id = message.media_group_id)
 			const mediaItem = types[mediaType].extractMediaItem(message)
 			userMap.media.push({
 				...mediaItem,

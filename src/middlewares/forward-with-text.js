@@ -12,9 +12,12 @@ module.exports = (timeout = 500) =>
 		if (map.has(fromId)) {
 			//second message (media)
 			const userMap = map.get(fromId)
-			const mediaType = mediaTypeKeys.find(mediaType => message[mediaType])
+			const mediaType = mediaTypeKeys.find(
+				mediaType => message[mediaType]
+			)
 			if (mediaType) {
-				message.media_group_id && (userMap.media_group_id = message.media_group_id)
+				message.media_group_id &&
+					(userMap.media_group_id = message.media_group_id)
 				const mediaItem = types[mediaType].extractMediaItem(message)
 				userMap.media.push({
 					...mediaItem,

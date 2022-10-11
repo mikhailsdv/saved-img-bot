@@ -10,12 +10,15 @@ const arrEnd = arr => (arr.length === 0 ? null : arr[arr.length - 1])
 
 const getDateString = date => {
 	const d = date ? new Date(date) : new Date()
-	return `${zeroFirst(d.getDate())}.${zeroFirst(d.getMonth() + 1)}.${d.getFullYear()} ${zeroFirst(
-		d.getHours()
-	)}:${zeroFirst(d.getMinutes())}:${zeroFirst(d.getSeconds())}`
+	return `${zeroFirst(d.getDate())}.${zeroFirst(
+		d.getMonth() + 1
+	)}.${d.getFullYear()} ${zeroFirst(d.getHours())}:${zeroFirst(
+		d.getMinutes()
+	)}:${zeroFirst(d.getSeconds())}`
 }
 
-const removeSubstr = (str, from, length) => `${str.substr(0, from)}${str.substr(from + length)}`
+const removeSubstr = (str, from, length) =>
+	`${str.substr(0, from)}${str.substr(from + length)}`
 
 const log = (...args) => console.log(`${getDateString()}:`, ...args)
 
@@ -23,7 +26,10 @@ const getTranslitVariants = str => {
 	const strSplit = str.split("")
 	let variants = []
 	const alphabets = [
-		["qwertyuiop[]asdfghjkl;'zxcvbnm,.", "йцукенгшщзхъфывапролджэячсмитьбю"],
+		[
+			"qwertyuiop[]asdfghjkl;'zxcvbnm,.",
+			"йцукенгшщзхъфывапролджэячсмитьбю",
+		],
 		["йцукенгшщзфывапролдячсмить", "qwertyuiopasdfghjklzxcvbnm"],
 	]
 	variants.push(str)
@@ -34,7 +40,9 @@ const getTranslitVariants = str => {
 		let result = ""
 
 		strSplit.forEach(letter => {
-			const letterIndex = from.findIndex(fromLetter => fromLetter === letter)
+			const letterIndex = from.findIndex(
+				fromLetter => fromLetter === letter
+			)
 			if (letterIndex > -1) {
 				result += to[letterIndex]
 			} else {
@@ -70,7 +78,8 @@ const sleep = ms => {
 const createMoveHash = ({date, id}) =>
 	crypto.createHash("md5").update(`${date}${id}`).digest("hex").substr(0, 32)
 
-const isValidMoveHash = ({date, id, hash}) => createMoveHash({date, id}) === hash
+const isValidMoveHash = ({date, id, hash}) =>
+	createMoveHash({date, id}) === hash
 
 const isTitlelessAudio = file => file.type === "audio" && file.title === ""
 

@@ -5,7 +5,8 @@ module.exports = {
 		inlineResultKey: "gif_file_id",
 		sendCtxMethod: "replyWithAnimation",
 		extractMediaItem: message => message.animation || message.document,
-		extractTitle: message => message?.animation?.file_name || message?.document?.file_name,
+		extractTitle: message =>
+			message?.animation?.file_name || message?.document?.file_name,
 		isPremium: false,
 		canHaveCaption: true,
 		mustHaveTitle: false,
