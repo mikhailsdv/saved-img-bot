@@ -3,7 +3,7 @@ const crypto = require("crypto")
 const trimMessage = str => str.replace(/\t+/gm, "")
 
 const zeroFirst = s => {
-	return `0${s}`.substr(-2)
+	return `0${s}`.substring(-2)
 }
 
 const arrEnd = arr => (arr.length === 0 ? null : arr[arr.length - 1])

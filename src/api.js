@@ -1,10 +1,11 @@
 const mysql = require("mysql2")
-const config = require("./config")
+const env = require("./env")
 
 const DB = mysql.createPool({
-	host: config.MYSQL_HOST,
-	user: config.MYSQL_USER,
-	database: config.MYSQL_DATABASE,
+	host: env.MYSQL_HOST,
+	user: env.MYSQL_USER,
+	password: env.MYSQL_PASSWORD,
+	database: env.MYSQL_DATABASE,
 })
 
 const saveFile = ({
@@ -24,7 +25,7 @@ const saveFile = ({
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			INSERT INTO \`${config.FILES_TABLE_NAME}\`
+			INSERT INTO \`${env.FILES_TABLE_NAME}\`
 			SET 
 				\`chat_id\` = ?,
 				\`type\` = ?,
@@ -79,7 +80,7 @@ const createUser = ({
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			INSERT INTO \`${config.USERS_TABLE_NAME}\`
+			INSERT INTO \`${env.USERS_TABLE_NAME}\`
 			SET 
 				\`chat_id\` = ?,
 				\`username\` = ?,
@@ -106,7 +107,7 @@ const revokePremium = ({chat_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.USERS_TABLE_NAME}\`
+			UPDATE \`${env.USERS_TABLE_NAME}\`
 			SET 
 				\`is_premium\` = 0
 			WHERE \`chat_id\` = ?
@@ -130,7 +131,7 @@ const setPremium = ({chat_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.USERS_TABLE_NAME}\`
+			UPDATE \`${env.USERS_TABLE_NAME}\`
 			SET 
 				\`is_premium\` = 1
 			WHERE \`chat_id\` = ?
@@ -154,7 +155,7 @@ const moveFiles = ({from_chat_id, to_chat_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.FILES_TABLE_NAME}\`
+			UPDATE \`${env.FILES_TABLE_NAME}\`
 			SET 
 				\`chat_id\` = ?
 			WHERE \`chat_id\` = ?
@@ -181,7 +182,7 @@ const isFileExist = ({chat_id, message_id}) =>
 			SELECT
 				\`chat_id\`,
 				\`file_message_id\`
-			FROM \`${config.FILES_TABLE_NAME}\`
+			FROM \`${env.FILES_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
 				(\`file_message_id\` = ? OR \`tags_message_id\` = ?)
@@ -202,7 +203,7 @@ const isUserExist = ({chat_id}) =>
 		DB.query(
 			`
 			SELECT \`chat_id\`
-			FROM \`${config.USERS_TABLE_NAME}\`
+			FROM \`${env.USERS_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ?
 		`,
@@ -222,7 +223,7 @@ const getUser = ({chat_id}) =>
 		DB.query(
 			`
 			SELECT *
-			FROM \`${config.USERS_TABLE_NAME}\`
+			FROM \`${env.USERS_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ?
 		`,
@@ -242,7 +243,7 @@ const isPremiumUser = ({chat_id}) =>
 		DB.query(
 			`
 			SELECT \`chat_id\`
-			FROM \`${config.USERS_TABLE_NAME}\`
+			FROM \`${env.USERS_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
 				\`is_premium\` = 1
@@ -273,7 +274,7 @@ const getFile = ({chat_id, message_id}) =>
 				\`used_count\`,
 				\`is_deleted\`,
 				\`media_group_id\`
-			FROM \`${config.FILES_TABLE_NAME}\`
+			FROM \`${env.FILES_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
 				(\`file_message_id\` = ? OR \`tags_message_id\` = ?)
@@ -305,7 +306,7 @@ const getUserFiles = ({chat_id}) =>
 				\`is_deleted\`,
 				\`media_group_id\`,
 				\`date\`
-			FROM \`${config.FILES_TABLE_NAME}\`
+			FROM \`${env.FILES_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
 				\`is_deleted\` = 0
@@ -370,7 +371,7 @@ const getUserFilesOfType = ({chat_id, type}) =>
 				\`is_deleted\`,
 				\`media_group_id\`,
 				\`date\`
-			FROM \`${config.FILES_TABLE_NAME}\`
+			FROM \`${env.FILES_TABLE_NAME}\`
 			WHERE
 				\`chat_id\` = ? AND
 				\`type\` = ? AND
@@ -392,7 +393,7 @@ const updateFileTags = ({chat_id, file_message_id, tags}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.FILES_TABLE_NAME}\`
+			UPDATE \`${env.FILES_TABLE_NAME}\`
 			SET
 				\`tags\` = ?
 			WHERE
@@ -418,7 +419,7 @@ const deleteAllUsersFiles = ({chat_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.FILES_TABLE_NAME}\`
+			UPDATE \`${env.FILES_TABLE_NAME}\`
 			SET
 				\`is_deleted\` = 1
 			WHERE
@@ -443,7 +444,7 @@ const updateMediaGroupTags = ({chat_id, media_group_id, tags}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.FILES_TABLE_NAME}\`
+			UPDATE \`${env.FILES_TABLE_NAME}\`
 			SET
 				\`tags\` = ?
 			WHERE
@@ -469,7 +470,7 @@ const setFileDeletedState = ({is_deleted, chat_id, file_message_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.FILES_TABLE_NAME}\`
+			UPDATE \`${env.FILES_TABLE_NAME}\`
 			SET
 				\`is_deleted\` = ?
 			WHERE
@@ -495,7 +496,7 @@ const setMediaGroupDeletedState = ({is_deleted, chat_id, media_group_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.FILES_TABLE_NAME}\`
+			UPDATE \`${env.FILES_TABLE_NAME}\`
 			SET
 				\`is_deleted\` = ?
 			WHERE
@@ -521,7 +522,7 @@ const increaseUsedCount = ({id, chat_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			UPDATE \`${config.FILES_TABLE_NAME}\`
+			UPDATE \`${env.FILES_TABLE_NAME}\`
 			SET
 				\`used_count\` = \`used_count\` + 1
 			WHERE
@@ -548,16 +549,16 @@ const getStatistics = ({chat_id}) =>
 		DB.query(
 			`
 			SELECT
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ?) as \`count\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "photo") as \`photos\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "video") as \`videos\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "video_note") as \`video_notes\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "document") as \`documents\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "audio") as \`audios\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "voice") as \`voices\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "sticker") as \`stickers\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "gif") as \`gifs\`,
-				(SELECT COUNT(*) FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`tags\` != "") as \`has_tags\`
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ?) as \`count\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "photo") as \`photos\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "video") as \`videos\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "video_note") as \`video_notes\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "document") as \`documents\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "audio") as \`audios\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "voice") as \`voices\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "sticker") as \`stickers\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`type\` = "gif") as \`gifs\`,
+				(SELECT COUNT(*) FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? AND \`tags\` != "") as \`has_tags\`
 		`,
 			Array(10).fill(chat_id),
 			(error, results /*, fields*/) => {
@@ -574,7 +575,7 @@ const getMostUsedFile = ({chat_id}) =>
 	new Promise((resolve, reject) => {
 		DB.query(
 			`
-			SELECT \`file_id\`, \`type\`, \`used_count\` FROM \`${config.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? ORDER BY \`used_count\` DESC LIMIT 1
+			SELECT \`file_id\`, \`type\`, \`used_count\` FROM \`${env.FILES_TABLE_NAME}\` WHERE \`chat_id\` = ? ORDER BY \`used_count\` DESC LIMIT 1
 		`,
 			[chat_id],
 			(error, results /*, fields*/) => {

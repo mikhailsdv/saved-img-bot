@@ -1,5 +1,5 @@
 const {Telegraf, Telegram} = require("telegraf")
-const config = require("./config")
+const env = require("./env")
 const phrases = require("./phrases")
 const types = require("./types")
 const {
@@ -36,8 +36,8 @@ const {
 	getDateString,
 	isTitlelessAudio,
 } = require("./utils")
-const telegram = new Telegram(config.BOT_TOKEN)
-const bot = new Telegraf(config.BOT_TOKEN)
+const telegram = new Telegram(env.BOT_TOKEN)
+const bot = new Telegraf(env.BOT_TOKEN)
 
 const inlineShareButton = [
 	{
@@ -948,8 +948,10 @@ bot.on("chosen_inline_result", async ctx => {
 		id: fileId,
 	})
 })
-
-bot.launch()
+;(async () => {
+	await bot.launch()
+	console.log("Bot started")
+})()
 
 /*
 start - 😎 Начать
