@@ -1,7 +1,4 @@
 node_modules
-src/config.js
-src/test.js
-src/test.cmd
 .idea
 .DS_Store
 .env
