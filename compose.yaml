@@ -1,0 +1,23 @@
+services:
+    app:
+        build:
+            context: .
+        links:
+            - database
+        environment:
+            NODE_ENV: production
+        # ports:
+        #   - 3005:3000
+
+    database:
+        image: mysql:8
+        volumes:
+            - database:/data/db
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+        ports:
+            - 127.0.0.1:3306:3306
+
+volumes:
+    database:
