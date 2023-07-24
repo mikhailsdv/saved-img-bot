@@ -6,10 +6,6 @@ services:
             - database
         environment:
             NODE_ENV: production
-        stdin_open: true
-        tty: true
-        # ports:
-        #   - 3005:3000
 
     database:
         image: mysql:8
@@ -20,8 +16,6 @@ services:
             MYSQL_DATABASE: ${MYSQL_DATABASE}
         ports:
             - 127.0.0.1:3306:3306
-        stdin_open: true
-        tty: true
 
 volumes:
     database:
