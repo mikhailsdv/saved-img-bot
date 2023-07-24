@@ -6,6 +6,7 @@ const DB = mysql.createPool({
 	user: env.MYSQL_USER,
 	password: env.MYSQL_PASSWORD,
 	database: env.MYSQL_DATABASE,
+	port: env.MYSQL_PORT,
 })
 
 const saveFile = ({
