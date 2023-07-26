@@ -10,7 +10,7 @@ services:
     database:
         image: mysql:8
         volumes:
-            - database:/data/db
+            - ${MYSQL_HOST}:/data/db
         environment:
             MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
             MYSQL_DATABASE: ${MYSQL_DATABASE}
