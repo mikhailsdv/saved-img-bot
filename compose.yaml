@@ -2,17 +2,15 @@ services:
     app:
         build:
             context: .
-        depends_on:
+        links:
             - database
-        restart: unless-stopped
         environment:
             NODE_ENV: production
 
     database:
         image: mysql:8
-        restart: unless-stopped
         volumes:
-            - database:/var/lib/mysql
+            - ${MYSQL_HOST}:/data/db
         environment:
             MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
             MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -21,9 +19,7 @@ services:
 
     phpmyadmin:
         image: phpmyadmin
-        restart: unless-stopped
-        depends_on:
-            - database
+        restart: always
         ports:
             - 127.0.0.1:${PHPMYADMIN_PORT}:80
         environment:
