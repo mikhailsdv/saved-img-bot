@@ -4,11 +4,13 @@ services:
             context: .
         depends_on:
             - database
+        restart: unless-stopped
         environment:
             NODE_ENV: production
 
     database:
         image: mysql:8
+        restart: unless-stopped
         volumes:
             - database:/var/lib/mysql
         environment:
@@ -19,7 +21,7 @@ services:
 
     phpmyadmin:
         image: phpmyadmin
-        restart: always
+        restart: unless-stopped
         ports:
             - 127.0.0.1:${PHPMYADMIN_PORT}:80
         environment:
